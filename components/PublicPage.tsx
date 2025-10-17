@@ -53,27 +53,27 @@ const PublicPage: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [imageInModal, setImageInModal] = useState<string | null>(null);
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                setLoading(true);
-                const eventsData = await api.getPublicEvents();
-                setEvents(eventsData);
+    // useEffect(() => {
+    //     const fetchData = async () => {
+    //         try {
+    //             setLoading(true);
+    //             const eventsData = await api.getPublicEvents();
+    //             setEvents(eventsData);
 
-                let testimonyData = await api.getFeaturedTestimony();
-                if (!testimonyData) {
-                    testimonyData = await api.getRandomPoignantTestimony();
-                }
-                setTestimony(testimonyData);
-            } catch (error) {
-                console.error("Erreur lors du chargement des annonces:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
+    //             let testimonyData = await api.getFeaturedTestimony();
+    //             if (!testimonyData) {
+    //                 testimonyData = await api.getRandomPoignantTestimony();
+    //             }
+    //             setTestimony(testimonyData);
+    //         } catch (error) {
+    //             console.error("Erreur lors du chargement des annonces:", error);
+    //         } finally {
+    //             setLoading(false);
+    //         }
+    //     };
 
-        fetchData();
-    }, []);
+    //     fetchData();
+    // }, []);
     
     if (loading) {
         return <div className="flex justify-center items-center p-20"><SpinnerIcon className="h-16 w-16 text-blue-700"/></div>;

@@ -34,12 +34,12 @@ const Navbar = () => {
       return (
         <>
           <NavLink to="/" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `${linkClasses} ${isActive && !isMobile ? activeLinkClass : inactiveLinkClass}`}>Accueil</NavLink>
-          <NavLink to="/annonces" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `${linkClasses} ${isActive ? activeLinkClass : inactiveLinkClass}`}>Annonces</NavLink>
+          {/* <NavLink to="/annonces" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `${linkClasses} ${isActive ? activeLinkClass : inactiveLinkClass}`}>Annonces</NavLink> */}
           <NavLink to="/rapport" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `${linkClasses} ${isActive ? activeLinkClass : inactiveLinkClass}`}>Rapport</NavLink>
           {user && (
             <>
-              <NavLink to="/communications" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `${linkClasses} ${isActive ? activeLinkClass : inactiveLinkClass}`}>Communications</NavLink>
-              <NavLink to="/resources" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `${linkClasses} ${isActive ? activeLinkClass : inactiveLinkClass}`}>Ressources</NavLink>
+              {/* <NavLink to="/communications" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `${linkClasses} ${isActive ? activeLinkClass : inactiveLinkClass}`}>Communications</NavLink> */}
+              {/* <NavLink to="/resources" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `${linkClasses} ${isActive ? activeLinkClass : inactiveLinkClass}`}>Ressources</NavLink> */}
               <NavLink to="/admin" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `${linkClasses} ${isActive ? activeLinkClass : inactiveLinkClass}`}>Tableau de bord</NavLink>
               <NavLink to="/management" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `${linkClasses} ${isActive ? activeLinkClass : inactiveLinkClass}`}>Gestion</NavLink>
             </>
@@ -294,20 +294,20 @@ function App() {
             <main className="px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full">
               <Routes>
                 <Route path="/" element={<HomePage />} />
-                <Route path="/annonces" element={<PublicPage />} />
+                {/* <Route path="/annonces" element={<PublicPage />} /> */}
                 <Route path="/rapport" element={<ReportPage />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
-                <Route path="/communications" element={
+                {/* <Route path="/communications" element={
                   <ProtectedRoute>
                     <CommunicationPage />
                   </ProtectedRoute>
-                } />
-                <Route path="/resources" element={
+                } /> */}
+                {/* <Route path="/resources" element={
                   <ProtectedRoute>
                     <ResourcesPage />
                   </ProtectedRoute>
-                } />
+                } /> */}
                 <Route path="/admin" element={
                   <ProtectedRoute>
                     <AdminPage />

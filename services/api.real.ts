@@ -364,7 +364,7 @@ export const api = {
 
   updateGroup: async (groupId: string, groupData: Omit<Group, 'id'>): Promise<void> => {
     try {
-      await httpClient.put(`${API_CONFIG.ENDPOINTS.GROUPS}/${groupId}`, groupData);
+      await httpClient.patch<Group>(`${API_CONFIG.ENDPOINTS.GROUPS}/${groupId}`, groupData);
       return Promise.resolve();
     } catch (error) {
       console.error('Update group error:', error);
@@ -414,7 +414,7 @@ export const api = {
 
   updateDistrict: async (districtId: string, districtData: Omit<District, 'id'>): Promise<void> => {
     try {
-      await httpClient.put(`${API_CONFIG.ENDPOINTS.DISTRICTS}/${districtId}`, districtData);
+      await httpClient.patch<District>(`${API_CONFIG.ENDPOINTS.DISTRICTS}/${districtId}`, districtData);
       return Promise.resolve();
     } catch (error) {
       console.error('Update district error:', error);
