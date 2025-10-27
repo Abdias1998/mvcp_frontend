@@ -1,7 +1,7 @@
 // Configuration de l'API
 export const API_CONFIG = {
-  // BASE_URL: 'https://mvcp-cellule.onrender.com',
-  BASE_URL: 'http://localhost:4000',
+  BASE_URL: 'https://mvcp-cellule.onrender.com',
+  // BASE_URL: 'http://localhost:4000',
   TIMEOUT: 30000, // 30 secondes
   ENDPOINTS: {
     // Authentication
