@@ -206,9 +206,14 @@ const ReportForm: React.FC = () => {
 
     const validateStep = (stepToValidate: number, redirectOnError: boolean = false): boolean => {
       if (stepToValidate === 1) {
-        const { cellDate, region, group, district, leaderName } = formData;
+        const { cellDate, region, group, district, leaderName, cellCategory } = formData;
         if (!cellDate || !region || !group || !district || !leaderName) {
             showToast("Veuillez remplir toutes les informations d'identification requises.", 'error');
+            if (redirectOnError) setStep(1);
+            return false;
+        }
+        if (!cellCategory) {
+            showToast("Veuillez sélectionner une catégorie de cellule.", 'error');
             if (redirectOnError) setStep(1);
             return false;
         }
@@ -310,7 +315,7 @@ const ReportForm: React.FC = () => {
                          {cellsInDistrict.map(c => <option key={c.id} value={c.id}>{c.cellName}</option>)}
                     </select>
                 </div> */}
-                 <div>
+                 {/* <div>
                     <label htmlFor="cellName" className={labelClass}>Ou saisir le nom de la cellule</label>
                     <input 
                         type="text" 
@@ -322,7 +327,7 @@ const ReportForm: React.FC = () => {
                         placeholder="Ex: Cellule de prière du vendredi"
                         disabled={!formData.district}
                     />
-                </div>
+                </div> */}
                  <div>
                     <label htmlFor="cellCategory" className={labelClass}>Catégorie de la cellule</label>
                     <select name="cellCategory" id="cellCategory" value={formData.cellCategory} onChange={handleChange} className={inputClass} required>

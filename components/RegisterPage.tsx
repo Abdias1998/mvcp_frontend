@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { api } from '../services/api.real';
 import { useAuth } from '../contexts/AuthContext.tsx';
 import { useToast } from '../contexts/ToastContext.tsx';
-import { PastorData, UserRole } from '../types.ts';
+import { PastorData, UserRole, Group, District } from '../types.ts';
 import { REGIONS } from '../constants.ts';
 import { LogoIcon, SpinnerIcon } from './icons.tsx';
 
@@ -19,6 +19,8 @@ const RegisterPage: React.FC = () => {
         district: '',
     });
     const [loading, setLoading] = useState(false);
+    const [allGroups, setAllGroups] = useState<Group[]>([]);
+    const [allDistricts, setAllDistricts] = useState<District[]>([]);
     const { user } = useAuth();
     const navigate = useNavigate();
     const { showToast } = useToast();
@@ -29,9 +31,50 @@ const RegisterPage: React.FC = () => {
         }
     }, [user, navigate]);
 
+    // Charger les groupes et districts depuis l'API
+    useEffect(() => {
+        const fetchHierarchyData = async () => {
+            try {
+                const [groups, districts] = await Promise.all([
+                    api.getGroups(),
+                    api.getDistricts()
+                ]);
+                setAllGroups(groups);
+                setAllDistricts(districts);
+            } catch (error) {
+                console.error('Erreur lors du chargement des données de hiérarchie:', error);
+                showToast('Erreur lors du chargement des données. Veuillez réessayer.', 'error');
+            }
+        };
+        fetchHierarchyData();
+    }, [showToast]);
+
+    // Filtrer les groupes par région
+    const groupsInRegion = useMemo(() => {
+        if (!formData.region) return [];
+        return [...new Set(allGroups.filter(g => g.region === formData.region).map(g => g.name))].sort();
+    }, [formData.region, allGroups]);
+
+    // Filtrer les districts par région et groupe
+    const districtsInGroup = useMemo(() => {
+        if (!formData.region || !formData.group) return [];
+        return [...new Set(allDistricts.filter(d => d.region === formData.region && d.group === formData.group).map(d => d.name))].sort();
+    }, [formData.region, formData.group, allDistricts]);
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+        
+        // Réinitialiser les champs dépendants quand la région change
+        if (name === 'region') {
+            setFormData(prev => ({ ...prev, [name]: value, group: '', district: '' }));
+        }
+        // Réinitialiser le district quand le groupe change
+        else if (name === 'group') {
+            setFormData(prev => ({ ...prev, [name]: value, district: '' }));
+        }
+        else {
+            setFormData(prev => ({ ...prev, [name]: value }));
+        }
     };
 
     const handleRoleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -76,8 +119,8 @@ const RegisterPage: React.FC = () => {
                     <input type="text" id="name" name="name" value={formData.name} onChange={handleChange} className={inputClass} required />
                 </div>
                 <div>
-                    <label htmlFor="email" className={labelClass}>Email</label>
-                    <input type="email" id="email" name="email" value={formData.email} onChange={handleChange} className={inputClass} required />
+                    <label htmlFor="email" className={labelClass}>Email (facultatif)</label>
+                    <input type="email" id="email" name="email" value={formData.email} onChange={handleChange} className={inputClass} />
                 </div>
                  <div>
                     <label htmlFor="contact" className={labelClass}>Numéro de téléphone</label>
@@ -89,8 +132,7 @@ const RegisterPage: React.FC = () => {
                         onChange={handleChange} 
                         className={inputClass} 
                         placeholder="Ex: 0123456789"
-                        pattern="01[0-9]{8}"
-                        title="Le numéro doit contenir 10 chiffres et commencer par 01."
+                        required
                     />
                 </div>
                 <div>
@@ -120,14 +162,36 @@ const RegisterPage: React.FC = () => {
                 {(formData.role === UserRole.GROUP_PASTOR || formData.role === UserRole.DISTRICT_PASTOR) && (
                      <div>
                         <label htmlFor="group" className={labelClass}>Groupe</label>
-                        <input type="text" id="group" name="group" value={formData.group || ''} onChange={handleChange} className={inputClass} placeholder="Nom du groupe" required />
+                        <select 
+                            id="group" 
+                            name="group" 
+                            value={formData.group || ''} 
+                            onChange={handleChange} 
+                            className={inputClass} 
+                            required 
+                            disabled={!formData.region}
+                        >
+                            <option value="">-- Sélectionner un groupe --</option>
+                            {groupsInRegion.map(g => <option key={g} value={g}>{g}</option>)}
+                        </select>
                     </div>
                 )}
 
                  {formData.role === UserRole.DISTRICT_PASTOR && (
                      <div>
                         <label htmlFor="district" className={labelClass}>District</label>
-                        <input type="text" id="district" name="district" value={formData.district || ''} onChange={handleChange} className={inputClass} placeholder="Nom du district" required />
+                        <select 
+                            id="district" 
+                            name="district" 
+                            value={formData.district || ''} 
+                            onChange={handleChange} 
+                            className={inputClass} 
+                            required 
+                            disabled={!formData.group}
+                        >
+                            <option value="">-- Sélectionner un district --</option>
+                            {districtsInGroup.map(d => <option key={d} value={d}>{d}</option>)}
+                        </select>
                     </div>
                 )}
                 

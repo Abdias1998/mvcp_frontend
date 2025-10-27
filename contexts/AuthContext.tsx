@@ -5,7 +5,7 @@ import { api } from '../services/api.real';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, pass: string) => Promise<void>;
+  login: (identifier: string, pass: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -23,8 +23,8 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
         return () => unsubscribe();
     }, []);
 
-    const login = async (email: string, pass: string) => {
-        const loggedInUser = await api.login(email, pass);
+    const login = async (identifier: string, pass: string) => {
+        const loggedInUser = await api.login(identifier, pass);
         setUser(loggedInUser);
     };
 

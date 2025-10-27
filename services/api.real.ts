@@ -56,11 +56,14 @@ export const api = {
     };
   },
 
-  login: async (email: string, password: string): Promise<User> => {
+  login: async (identifier: string, password: string): Promise<User> => {
     try {
+      // Envoyer l'identifiant tel quel - l'API backend gère la distinction email/téléphone
+      const loginData = { identifier, password };
+      
       const response = await httpClient.post<any>(
         API_CONFIG.ENDPOINTS.LOGIN,
-        { email, password }
+        loginData
       );
       
       // L'API retourne { access_token, user } au lieu de { success, data }
@@ -83,22 +86,42 @@ export const api = {
       }
       
       // Si l'API retourne une erreur explicite, on la propage
-      throw new Error(response.message || 'Email ou mot de passe incorrect');
+      throw new Error(response.message || 'Identifiant ou mot de passe incorrect');
     } catch (error: any) {
       console.error('Login error:', error);
       
+      let errorMessage = 'Identifiant ou mot de passe incorrect';
+      
       // Si c'est une HttpError (erreur HTTP de l'API)
       if (error.statusText) {
-        throw new Error(error.statusText);
+        errorMessage = error.statusText;
+        
+        // Si le message est un tableau, le joindre
+        if (Array.isArray(errorMessage)) {
+          errorMessage = errorMessage.join(', ');
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
       }
       
-      // Si l'erreur a déjà un message
-      if (error.message) {
-        throw error;
+      // Si le responseText contient un JSON avec un message détaillé
+      if (error.responseText) {
+        try {
+          const errorData = JSON.parse(error.responseText);
+          if (errorData.message) {
+            // Si message est un tableau, le joindre
+            if (Array.isArray(errorData.message)) {
+              errorMessage = errorData.message.join(', ');
+            } else {
+              errorMessage = errorData.message;
+            }
+          }
+        } catch (e) {
+          // Ignorer si ce n'est pas du JSON valide
+        }
       }
       
-      // Sinon, on affiche un message générique d'authentification
-      throw new Error('Email ou mot de passe incorrect');
+      throw new Error(errorMessage);
     }
   },
 
@@ -119,11 +142,44 @@ export const api = {
         success: true,
         message: 'Inscription réussie. En attente d\'approbation.'
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Registration error:', error);
+      
+      // Extraire le message d'erreur détaillé de l'API
+      let errorMessage = 'Erreur lors de l\'inscription';
+      
+      if (error.statusText) {
+        // Si c'est une HttpError avec un message de l'API
+        errorMessage = error.statusText;
+        
+        // Si le message est un tableau (comme dans votre exemple), le joindre
+        if (Array.isArray(errorMessage)) {
+          errorMessage = errorMessage.join(', ');
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      // Si le responseText contient un JSON avec un message détaillé
+      if (error.responseText) {
+        try {
+          const errorData = JSON.parse(error.responseText);
+          if (errorData.message) {
+            // Si message est un tableau, le joindre
+            if (Array.isArray(errorData.message)) {
+              errorMessage = errorData.message.join(', ');
+            } else {
+              errorMessage = errorData.message;
+            }
+          }
+        } catch (e) {
+          // Ignorer si ce n'est pas du JSON valide
+        }
+      }
+      
       return {
         success: false,
-        message: 'Erreur lors de l\'inscription'
+        message: errorMessage
       };
     }
   },

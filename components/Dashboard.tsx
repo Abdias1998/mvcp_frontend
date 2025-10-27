@@ -663,6 +663,19 @@ const LittoralDashboard: React.FC<{ user: User }> = ({ user }) => {
     const handleGeneratePDF = async () => {
         if (!pdfRef.current || reportsToAnalyze.length === 0) return;
         setIsGeneratingPDF(true);
+        
+        // Rendre le composant visible temporairement pour la capture
+        const pdfElement = pdfRef.current;
+        const originalPosition = pdfElement.style.position;
+        const originalLeft = pdfElement.style.left;
+        const originalTop = pdfElement.style.top;
+        const originalVisibility = pdfElement.style.visibility;
+        
+        pdfElement.style.position = 'absolute';
+        pdfElement.style.left = '0';
+        pdfElement.style.top = '0';
+        pdfElement.style.visibility = 'visible';
+        
         try {
             const testimoniesList = reportsToAnalyze.filter(r => r.poignantTestimony && r.poignantTestimony.trim().length > 10).slice(0, 5);
             const newMembersList = reportsToAnalyze.flatMap(r => 
@@ -671,17 +684,92 @@ const LittoralDashboard: React.FC<{ user: User }> = ({ user }) => {
                 }))
             );
 
-            const canvas = await html2canvas(pdfRef.current, { scale: 2 });
-            const imgData = canvas.toDataURL('image/png');
+            // Attendre un court instant pour s'assurer que le rendu est complet
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            // Options améliorées pour html2canvas
+            const canvas = await html2canvas(pdfElement, { 
+                scale: 1.5, // Réduire l'échelle pour éviter les canvas trop grands
+                useCORS: true, // Permettre le chargement d'images cross-origin
+                allowTaint: false,
+                logging: false,
+                backgroundColor: '#ffffff',
+                imageTimeout: 15000, // Timeout pour le chargement des images
+                removeContainer: true,
+                windowWidth: pdfElement.scrollWidth,
+                windowHeight: pdfElement.scrollHeight
+            });
+            
+            // Vérifier la taille du canvas
+            const maxCanvasSize = 32767; // Limite maximale pour la plupart des navigateurs
+            if (canvas.width > maxCanvasSize || canvas.height > maxCanvasSize) {
+                throw new Error('Le contenu est trop grand pour être exporté en PDF. Veuillez réduire la plage de dates.');
+            }
+
+            // Convertir en image avec compression
+            const imgData = canvas.toDataURL('image/jpeg', 0.85); // Utiliser JPEG avec compression
+            
+            // Vérifier que l'image n'est pas vide ou corrompue
+            if (!imgData || imgData.length < 100) {
+                throw new Error('Erreur lors de la génération de l\'image. Veuillez réessayer.');
+            }
+            
             const pdf = new jsPDF('p', 'mm', 'a4');
             const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+            const pdfHeight = pdf.internal.pageSize.getHeight();
+            const canvasAspectRatio = canvas.height / canvas.width;
+            const pdfAspectRatio = pdfHeight / pdfWidth;
+            
+            let imgWidth = pdfWidth;
+            let imgHeight = pdfWidth * canvasAspectRatio;
+            
+            // Si l'image est plus haute qu'une page, diviser en plusieurs pages
+            if (imgHeight > pdfHeight) {
+                let position = 0;
+                const pageCanvas = document.createElement('canvas');
+                const pageContext = pageCanvas.getContext('2d');
+                
+                if (!pageContext) {
+                    throw new Error('Impossible de créer le contexte canvas');
+                }
+                
+                pageCanvas.width = canvas.width;
+                const pageHeight = (pdfHeight * canvas.width) / pdfWidth;
+                pageCanvas.height = pageHeight;
+                
+                while (position < canvas.height) {
+                    pageContext.fillStyle = '#ffffff';
+                    pageContext.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+                    pageContext.drawImage(canvas, 0, position, canvas.width, pageHeight, 0, 0, canvas.width, pageHeight);
+                    
+                    const pageImgData = pageCanvas.toDataURL('image/jpeg', 0.85);
+                    
+                    if (position > 0) {
+                        pdf.addPage();
+                    }
+                    
+                    pdf.addImage(pageImgData, 'JPEG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
+                    position += pageHeight;
+                }
+            } else {
+                // L'image tient sur une seule page
+                pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight, undefined, 'FAST');
+            }
+            
             pdf.save("Rapport_Littoral.pdf");
+            showToast("PDF généré avec succès!", 'success');
         } catch (error) {
             console.error("PDF generation error:", error);
-            showToast("Erreur lors de la génération du PDF.", 'error');
+            const errorMessage = error instanceof Error ? error.message : "Erreur lors de la génération du PDF.";
+            showToast(errorMessage, 'error');
         } finally {
+            // Restaurer l'état original du composant
+            if (pdfRef.current) {
+                pdfRef.current.style.position = originalPosition;
+                pdfRef.current.style.left = originalLeft;
+                pdfRef.current.style.top = originalTop;
+                pdfRef.current.style.visibility = originalVisibility;
+            }
             setIsGeneratingPDF(false);
         }
     };
@@ -858,7 +946,7 @@ const LittoralDashboard: React.FC<{ user: User }> = ({ user }) => {
             <ReportDetailModal report={selectedReport} onClose={() => setSelectedReport(null)} onDeleteRequest={handleDeleteRequest} />
             <ConfirmationModal isOpen={!!reportToDelete} onClose={() => setReportToDelete(null)} onConfirm={handleConfirmDelete} title="Supprimer le Rapport" message={`Êtes-vous sûr de vouloir supprimer le rapport de ${reportToDelete?.cellName} du ${reportToDelete?.cellDate}?`} isConfirming={isDeleting} />
             <DrilldownDetailModal item={drilldownItem} onClose={() => setDrilldownItem(null)} allReports={allReports} allCells={cells} />
-            <div className="hidden">
+            <div style={{ position: 'fixed', left: '-9999px', top: '0', visibility: 'hidden' }}>
                  <ReportPDF ref={pdfRef} user={user} stats={stats} dateRange={dateRange} summaryData={summaryByGroup} demographicsData={demographicsData} title="Rapport d'Activité - Littoral" testimonies={reportsToAnalyze.filter(r => r.poignantTestimony)} newMembers={reportsToAnalyze.flatMap(r => r.invitedPeople.map(p => ({...p, cellName: r.cellName, group: r.group, district: r.district})))} />
             </div>
         </div>
@@ -1102,6 +1190,19 @@ const RegionsDashboard: React.FC<{ user: User }> = ({ user }) => {
     const handleGeneratePDF = async () => {
         if (!pdfRef.current || reportsToAnalyze.length === 0) return;
         setIsGeneratingPDF(true);
+        
+        // Rendre le composant visible temporairement pour la capture
+        const pdfElement = pdfRef.current;
+        const originalPosition = pdfElement.style.position;
+        const originalLeft = pdfElement.style.left;
+        const originalTop = pdfElement.style.top;
+        const originalVisibility = pdfElement.style.visibility;
+        
+        pdfElement.style.position = 'absolute';
+        pdfElement.style.left = '0';
+        pdfElement.style.top = '0';
+        pdfElement.style.visibility = 'visible';
+        
         try {
             const testimoniesList = reportsToAnalyze.filter(r => r.poignantTestimony && r.poignantTestimony.trim().length > 10).slice(0, 5);
             const newMembersList = reportsToAnalyze.flatMap(r => 
@@ -1110,17 +1211,92 @@ const RegionsDashboard: React.FC<{ user: User }> = ({ user }) => {
                 }))
             );
 
-            const canvas = await html2canvas(pdfRef.current, { scale: 2 });
-            const imgData = canvas.toDataURL('image/png');
+            // Attendre un court instant pour s'assurer que le rendu est complet
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            // Options améliorées pour html2canvas
+            const canvas = await html2canvas(pdfElement, { 
+                scale: 1.5, // Réduire l'échelle pour éviter les canvas trop grands
+                useCORS: true, // Permettre le chargement d'images cross-origin
+                allowTaint: false,
+                logging: false,
+                backgroundColor: '#ffffff',
+                imageTimeout: 15000, // Timeout pour le chargement des images
+                removeContainer: true,
+                windowWidth: pdfElement.scrollWidth,
+                windowHeight: pdfElement.scrollHeight
+            });
+            
+            // Vérifier la taille du canvas
+            const maxCanvasSize = 32767; // Limite maximale pour la plupart des navigateurs
+            if (canvas.width > maxCanvasSize || canvas.height > maxCanvasSize) {
+                throw new Error('Le contenu est trop grand pour être exporté en PDF. Veuillez réduire la plage de dates.');
+            }
+
+            // Convertir en image avec compression
+            const imgData = canvas.toDataURL('image/jpeg', 0.85); // Utiliser JPEG avec compression
+            
+            // Vérifier que l'image n'est pas vide ou corrompue
+            if (!imgData || imgData.length < 100) {
+                throw new Error('Erreur lors de la génération de l\'image. Veuillez réessayer.');
+            }
+            
             const pdf = new jsPDF('p', 'mm', 'a4');
             const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+            const pdfHeight = pdf.internal.pageSize.getHeight();
+            const canvasAspectRatio = canvas.height / canvas.width;
+            const pdfAspectRatio = pdfHeight / pdfWidth;
+            
+            let imgWidth = pdfWidth;
+            let imgHeight = pdfWidth * canvasAspectRatio;
+            
+            // Si l'image est plus haute qu'une page, diviser en plusieurs pages
+            if (imgHeight > pdfHeight) {
+                let position = 0;
+                const pageCanvas = document.createElement('canvas');
+                const pageContext = pageCanvas.getContext('2d');
+                
+                if (!pageContext) {
+                    throw new Error('Impossible de créer le contexte canvas');
+                }
+                
+                pageCanvas.width = canvas.width;
+                const pageHeight = (pdfHeight * canvas.width) / pdfWidth;
+                pageCanvas.height = pageHeight;
+                
+                while (position < canvas.height) {
+                    pageContext.fillStyle = '#ffffff';
+                    pageContext.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+                    pageContext.drawImage(canvas, 0, position, canvas.width, pageHeight, 0, 0, canvas.width, pageHeight);
+                    
+                    const pageImgData = pageCanvas.toDataURL('image/jpeg', 0.85);
+                    
+                    if (position > 0) {
+                        pdf.addPage();
+                    }
+                    
+                    pdf.addImage(pageImgData, 'JPEG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
+                    position += pageHeight;
+                }
+            } else {
+                // L'image tient sur une seule page
+                pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight, undefined, 'FAST');
+            }
+            
             pdf.save("Rapport_Regions.pdf");
+            showToast("PDF généré avec succès!", 'success');
         } catch (error) {
             console.error("PDF generation error:", error);
-            showToast("Erreur lors de la génération du PDF.", 'error');
+            const errorMessage = error instanceof Error ? error.message : "Erreur lors de la génération du PDF.";
+            showToast(errorMessage, 'error');
         } finally {
+            // Restaurer l'état original du composant
+            if (pdfRef.current) {
+                pdfRef.current.style.position = originalPosition;
+                pdfRef.current.style.left = originalLeft;
+                pdfRef.current.style.top = originalTop;
+                pdfRef.current.style.visibility = originalVisibility;
+            }
             setIsGeneratingPDF(false);
         }
     };
@@ -1302,7 +1478,7 @@ const RegionsDashboard: React.FC<{ user: User }> = ({ user }) => {
              <ReportDetailModal report={selectedReport} onClose={() => setSelectedReport(null)} onDeleteRequest={handleDeleteRequest} />
             <ConfirmationModal isOpen={!!reportToDelete} onClose={() => setReportToDelete(null)} onConfirm={handleConfirmDelete} title="Supprimer le Rapport" message={`Êtes-vous sûr de vouloir supprimer le rapport de ${reportToDelete?.cellName} du ${reportToDelete?.cellDate}?`} isConfirming={isDeleting} />
              <DrilldownDetailModal item={drilldownItem} onClose={() => setDrilldownItem(null)} allReports={allReports} allCells={cells} />
-             <div className="hidden">
+             <div style={{ position: 'fixed', left: '-9999px', top: '0', visibility: 'hidden' }}>
                  <ReportPDF ref={pdfRef} user={user} stats={stats} dateRange={dateRange} summaryData={summaryData} demographicsData={demographicsData} title={getDashboardTitle()} testimonies={reportsToAnalyze.filter(r => r.poignantTestimony)} newMembers={reportsToAnalyze.flatMap(r => r.invitedPeople.map(p => ({...p, cellName: r.cellName, group: r.group, district: r.district})))} />
             </div>
         </div>

@@ -83,7 +83,12 @@ export class HttpClient {
         try {
           const errorData = JSON.parse(responseText);
           if (errorData.message) {
-            errorMessage = errorData.message;
+            // Si le message est un tableau, le joindre en une seule chaîne
+            if (Array.isArray(errorData.message)) {
+              errorMessage = errorData.message.join(', ');
+            } else {
+              errorMessage = errorData.message;
+            }
           } else if (errorData.error) {
             errorMessage = errorData.error;
           }

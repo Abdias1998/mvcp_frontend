@@ -186,7 +186,7 @@ const HomePage: React.FC = () => {
 const ReportPage: React.FC = () => <ReportForm />;
 
 const LoginPage: React.FC = () => {
-    const [email, setEmail] = useState('');
+    const [identifier, setIdentifier] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const { login, user } = useAuth();
@@ -206,7 +206,7 @@ const LoginPage: React.FC = () => {
         e.preventDefault();
         setLoading(true);
         try {
-            await login(email, password);
+            await login(identifier, password);
             navigate(from, { replace: true });
         } catch (err: any) {
             showToast(err.message || "Erreur de connexion.", 'error');
@@ -217,12 +217,18 @@ const LoginPage: React.FC = () => {
     
     const handleForgotPassword = async (e: React.MouseEvent<HTMLAnchorElement>) => {
         e.preventDefault();
-        if (!email) {
-            showToast("Veuillez d'abord saisir votre adresse e-mail.", "info");
+        if (!identifier) {
+            showToast("Veuillez d'abord saisir votre email ou numéro de téléphone.", "info");
+            return;
+        }
+        // Vérifier si c'est un email
+        const isEmail = identifier.includes('@');
+        if (!isEmail) {
+            showToast("La réinitialisation du mot de passe nécessite une adresse email.", "info");
             return;
         }
         try {
-            await api.resetPassword(email);
+            await api.resetPassword(identifier);
             // The local API shows an alert, so we can add a toast for better UX consistency
             showToast("La procédure de réinitialisation a été simulée.", "success");
         } catch (err: any) {
@@ -237,8 +243,16 @@ const LoginPage: React.FC = () => {
             <p className="text-gray-600 mb-6 text-center">Accédez à votre tableau de bord.</p>
             <form onSubmit={handleSubmit} className="space-y-4">
                  <div>
-                    <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
-                    <input type="email" id="email" value={email} onChange={e => setEmail(e.target.value)} required className="mt-1 w-full p-2 border rounded-md" />
+                    <label htmlFor="identifier" className="block text-sm font-medium text-gray-700">Email ou Numéro de téléphone</label>
+                    <input 
+                        type="text" 
+                        id="identifier" 
+                        value={identifier} 
+                        onChange={e => setIdentifier(e.target.value)} 
+                        required 
+                        className="mt-1 w-full p-2 border rounded-md" 
+                        placeholder="email@exemple.com ou 0123456789"
+                    />
                 </div>
                 <div>
                     <label htmlFor="password"  className="block text-sm font-medium text-gray-700">Mot de passe</label>
