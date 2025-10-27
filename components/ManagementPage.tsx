@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext.tsx';
 import { UserRole } from '../types.ts';
+import { useNavigate } from 'react-router-dom';
 import PastorManagement from './PastorManagement.tsx';
 import CellManagement from './CellManagement.tsx';
 import DistrictManagement from './DistrictManagement.tsx';
@@ -10,6 +11,7 @@ import HierarchyView from './HierarchyView.tsx';
 
 const ManagementPage: React.FC = () => {
     const { user } = useAuth();
+    const navigate = useNavigate();
     
     if (!user) {
         return null; // Or a loading/error state

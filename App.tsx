@@ -5,9 +5,11 @@ import { api } from './services/api.real';
 import { LogoIcon, MenuIcon, XIcon, SpinnerIcon, PreachIcon, PrayerGroupIcon, DocumentTextIcon, BookOpenIcon, SpeakerphoneIcon } from './components/icons.tsx';
 import ReportForm from './components/ReportForm.tsx';
 import Dashboard from './components/Dashboard.tsx';
+import UsersPage from './components/UsersPage.tsx';
 import ManagementPage from './components/ManagementPage.tsx';
 import ResourcesPage from './components/ResourcesPage.tsx';
 import RegisterPage from './components/RegisterPage.tsx';
+import TeamPage from './components/TeamPage.tsx';
 import PublicPage from './components/PublicPage.tsx';
 import CommunicationPage from './components/CommunicationPage.tsx';
 import { AuthProvider, useAuth } from './contexts/AuthContext.tsx';
@@ -34,14 +36,21 @@ const Navbar = () => {
       return (
         <>
           <NavLink to="/" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `${linkClasses} ${isActive && !isMobile ? activeLinkClass : inactiveLinkClass}`}>Accueil</NavLink>
-          {/* <NavLink to="/annonces" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `${linkClasses} ${isActive ? activeLinkClass : inactiveLinkClass}`}>Annonces</NavLink> */}
-          <NavLink to="/rapport" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `${linkClasses} ${isActive ? activeLinkClass : inactiveLinkClass}`}>Rapport</NavLink>
           {user && (
             <>
-              {/* <NavLink to="/communications" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `${linkClasses} ${isActive ? activeLinkClass : inactiveLinkClass}`}>Communications</NavLink> */}
-              {/* <NavLink to="/resources" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `${linkClasses} ${isActive ? activeLinkClass : inactiveLinkClass}`}>Ressources</NavLink> */}
-              <NavLink to="/admin" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `${linkClasses} ${isActive ? activeLinkClass : inactiveLinkClass}`}>Tableau de bord</NavLink>
-              <NavLink to="/management" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `${linkClasses} ${isActive ? activeLinkClass : inactiveLinkClass}`}>Gestion</NavLink>
+              <NavLink to="/rapport" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `${linkClasses} ${isActive ? activeLinkClass : inactiveLinkClass}`}>Rapport</NavLink>
+              {user.role === UserRole.NATIONAL_COORDINATOR && (
+                <>
+                  <NavLink to="/admin" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `${linkClasses} ${isActive ? activeLinkClass : inactiveLinkClass}`}>Tableau de bord</NavLink>
+                  <NavLink to="/users" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `${linkClasses} ${isActive ? activeLinkClass : inactiveLinkClass}`}>Utilisateurs</NavLink>
+                </>
+              )}
+              {user.role !== UserRole.CELL_LEADER && (
+                <NavLink to="/management" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `${linkClasses} ${isActive ? activeLinkClass : inactiveLinkClass}`}>Gestion</NavLink>
+              )}
+              {(user.role === UserRole.GROUP_PASTOR || user.role === UserRole.DISTRICT_PASTOR) && (
+                <NavLink to="/team" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `${linkClasses} ${isActive ? activeLinkClass : inactiveLinkClass}`}>Mon Équipe</NavLink>
+              )}
             </>
           )}
           {user ? (
@@ -275,12 +284,6 @@ const LoginPage: React.FC = () => {
     );
 };
 
-const AdminPage: React.FC = () => {
-    const { user } = useAuth();
-    return <Dashboard user={user!} />;
-};
-
-
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { user, loading } = useAuth();
     const location = useLocation();
@@ -291,6 +294,36 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
     if (!user) {
         return <Navigate to="/login" state={{ from: location }} replace />;
+    }
+
+    return <>{children}</>;
+};
+
+// Protected route that also checks user role
+const RoleProtectedRoute: React.FC<{ 
+    children: React.ReactNode; 
+    excludeRoles?: UserRole[];
+    allowedRoles?: UserRole[];
+}> = ({ children, excludeRoles = [], allowedRoles = [] }) => {
+    const { user, loading } = useAuth();
+    const location = useLocation();
+
+    if (loading) {
+        return <div className="flex justify-center items-center p-20"><SpinnerIcon className="h-16 w-16 text-blue-700"/></div>;
+    }
+
+    if (!user) {
+        return <Navigate to="/login" state={{ from: location }} replace />;
+    }
+
+    // If allowedRoles is specified, check if user's role is in the list
+    if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
+        return <Navigate to="/" replace />;
+    }
+
+    // Check if user's role is in the excluded roles list
+    if (excludeRoles.length > 0 && excludeRoles.includes(user.role)) {
+        return <Navigate to="/" replace />;
     }
 
     return <>{children}</>;
@@ -323,13 +356,23 @@ function App() {
                   </ProtectedRoute>
                 } /> */}
                 <Route path="/admin" element={
-                  <ProtectedRoute>
-                    <AdminPage />
-                  </ProtectedRoute>
+                  <RoleProtectedRoute allowedRoles={[UserRole.NATIONAL_COORDINATOR]}>
+                    <Dashboard />
+                  </RoleProtectedRoute>
+                } />
+                <Route path="/users" element={
+                  <RoleProtectedRoute allowedRoles={[UserRole.NATIONAL_COORDINATOR]}>
+                    <UsersPage />
+                  </RoleProtectedRoute>
                 } />
                 <Route path="/management" element={
-                  <ProtectedRoute>
+                  <RoleProtectedRoute excludeRoles={[UserRole.CELL_LEADER]}>
                     <ManagementPage />
+                  </RoleProtectedRoute>
+                } />
+                <Route path="/team" element={
+                  <ProtectedRoute>
+                    <TeamPage />
                   </ProtectedRoute>
                 } />
               </Routes>

@@ -282,7 +282,7 @@ export const api = {
 
   approvePastor: async (uid: string): Promise<void> => {
     try {
-      await httpClient.post(`${API_CONFIG.ENDPOINTS.APPROVE_PASTOR}/${uid}`);
+      await httpClient.patch(`${API_CONFIG.ENDPOINTS.USERS}/${uid}/approve`);
       return Promise.resolve();
     } catch (error) {
       console.error('Approve pastor error:', error);
@@ -332,9 +332,12 @@ export const api = {
 
       if (user.role === UserRole.REGIONAL_PASTOR && user.region) {
         params.region = user.region;
-      } else if (user.role === UserRole.GROUP_PASTOR && user.group) {
+      } else if (user.role === UserRole.GROUP_PASTOR && user.region && user.group) {
+        params.region = user.region;
         params.group = user.group;
-      } else if (user.role === UserRole.DISTRICT_PASTOR && user.district) {
+      } else if (user.role === UserRole.DISTRICT_PASTOR && user.region && user.group && user.district) {
+        params.region = user.region;
+        params.group = user.group;
         params.district = user.district;
       }
 
@@ -368,7 +371,7 @@ export const api = {
 
   updateCell: async (cellId: string, cellData: Omit<Cell, 'id'>): Promise<void> => {
     try {
-      await httpClient.put(`${API_CONFIG.ENDPOINTS.CELLS}/${cellId}`, cellData);
+      await httpClient.patch(`${API_CONFIG.ENDPOINTS.CELLS}/${cellId}`, cellData);
       return Promise.resolve();
     } catch (error) {
       console.error('Update cell error:', error);
@@ -763,5 +766,87 @@ export const api = {
       console.error('Delete communication error:', error);
       throw error;
     }
+  },
+
+  // --- USER HIERARCHY MANAGEMENT ---
+  getUsersByHierarchy: async (user: User): Promise<User[]> => {
+    try {
+      // Le backend filtre automatiquement selon le rôle et la hiérarchie de l'utilisateur
+      const response = await httpClient.get<User[]>(
+        `${API_CONFIG.ENDPOINTS.USERS}/hierarchy`
+      );
+      
+      return response || [];
+    } catch (error) {
+      console.error('Get users by hierarchy error:', error);
+      return [];
+    }
+  },
+
+  // --- CELL LEADER MANAGEMENT ---
+  createCellLeader: async (cellLeaderData: any): Promise<{ success: boolean; message: string; identifier?: string }> => {
+    try {
+      const response = await httpClient.post<any>(
+        API_CONFIG.ENDPOINTS.CELL_LEADERS || '/cell-leaders',
+        cellLeaderData
+      );
+      
+      // Le backend retourne { identifier, user } ou similaire
+      return {
+        success: true,
+        message: 'Responsable de cellule créé avec succès.',
+        identifier: response.identifier || response.user?.identifier
+      };
+    } catch (error: any) {
+      console.error('Create cell leader error:', error);
+      
+      let errorMessage = 'Erreur lors de la création du responsable de cellule';
+      
+      if (error.statusText) {
+        errorMessage = error.statusText;
+        if (Array.isArray(errorMessage)) {
+          errorMessage = errorMessage.join(', ');
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      if (error.responseText) {
+        try {
+          const errorData = JSON.parse(error.responseText);
+          if (errorData.message) {
+            if (Array.isArray(errorData.message)) {
+              errorMessage = errorData.message.join(', ');
+            } else {
+              errorMessage = errorData.message;
+            }
+          }
+        } catch (e) {
+          // Ignorer si ce n'est pas du JSON valide
+        }
+      }
+      
+      return {
+        success: false,
+        message: errorMessage
+      };
+    }
+  },
+
+  // --- ADMIN METHODS (Aliases for clarity) ---
+  getPendingUsers: async (): Promise<User[]> => {
+    return api.getPendingPastors();
+  },
+
+  getAllUsers: async (): Promise<User[]> => {
+    return api.getPastors();
+  },
+
+  approveUser: async (uid: string): Promise<void> => {
+    return api.approvePastor(uid);
+  },
+
+  deleteUser: async (uid: string): Promise<void> => {
+    return api.deletePastor(uid);
   },
 };

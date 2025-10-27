@@ -13,6 +13,7 @@ import { UsersIcon, ChartBarIcon, CheckCircleIcon, FileDownloadIcon, SpinnerIcon
 import ReportDetailModal from './ReportDetailModal.tsx';
 import ConfirmationModal from './ConfirmationModal.tsx';
 import { useToast } from '../contexts/ToastContext.tsx';
+import { useAuth } from '../contexts/AuthContext.tsx';
 import { REGIONS } from '../constants.ts';
 
 const ITEMS_PER_PAGE = 10;
@@ -1486,10 +1487,13 @@ const RegionsDashboard: React.FC<{ user: User }> = ({ user }) => {
 };
 
 // --- MAIN DASHBOARD ROUTER COMPONENT ---
-const Dashboard: React.FC<{ user: User }> = ({ user }) => {
+const Dashboard: React.FC = () => {
+  const { user } = useAuth();
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
   const viewFilter = queryParams.get('view');
+
+  if (!user) return null;
 
   // National Coordinator sees a selection, then a specific dashboard
   if (user.role === UserRole.NATIONAL_COORDINATOR) {

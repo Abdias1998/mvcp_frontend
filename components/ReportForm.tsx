@@ -109,6 +109,26 @@ const ReportForm: React.FC = () => {
         fetchHierarchyData();
     }, [showToast, user]);
 
+    // Pré-remplir les champs du formulaire avec les informations de l'utilisateur connecté
+    useEffect(() => {
+        if (user && user.cellName && user.cellCategory) {
+            // Ne mettre à jour que si les champs ne sont pas déjà remplis
+            setFormData(prev => {
+                // Éviter la mise à jour si les valeurs sont déjà définies
+                if (prev.cellCategory && prev.leaderName && prev.leaderContact) {
+                    return prev;
+                }
+                return {
+                    ...prev,
+                    cellCategory: user.cellCategory || prev.cellCategory,
+                    leaderName: user.name || prev.leaderName,
+                    leaderContact: user.contact || prev.leaderContact,
+                };
+            });
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user]);
+
     const calculatedStats = useMemo(() => {
         const registeredMembers = Number(formData.registeredMen) + Number(formData.registeredWomen) + Number(formData.registeredChildren);
         const absentees = Math.max(0, registeredMembers - Number(formData.attendees));
@@ -330,7 +350,15 @@ const ReportForm: React.FC = () => {
                 </div> */}
                  <div>
                     <label htmlFor="cellCategory" className={labelClass}>Catégorie de la cellule</label>
-                    <select name="cellCategory" id="cellCategory" value={formData.cellCategory} onChange={handleChange} className={inputClass} required>
+                    <select 
+                        name="cellCategory" 
+                        id="cellCategory" 
+                        value={formData.cellCategory} 
+                        onChange={handleChange} 
+                        className={inputClass} 
+                        required
+                        disabled={user?.cellCategory ? true : false}
+                    >
                          <option value="">-- Sélectionner --</option>
                          {CELL_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
@@ -341,7 +369,16 @@ const ReportForm: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
                     <div>
                        <label htmlFor="leaderName" className={labelClass}>Nom du Responsable</label>
-                       <input type="text" name="leaderName" id="leaderName" value={formData.leaderName} onChange={handleChange} className={inputClass} required />
+                       <input 
+                           type="text" 
+                           name="leaderName" 
+                           id="leaderName" 
+                           value={formData.leaderName} 
+                           onChange={handleChange} 
+                           className={inputClass} 
+                           required 
+                           disabled={user?.cellName ? true : false}
+                       />
                     </div>
                     <div>
                        <label htmlFor="leaderContact" className={labelClass}>Contact du Responsable</label>
@@ -355,6 +392,7 @@ const ReportForm: React.FC = () => {
                            placeholder="Ex: 0123456789"
                            pattern="01[0-9]{8}"
                            title="Le numéro doit contenir 10 chiffres et commencer par 01."
+                           disabled={user?.contact ? true : false}
                        />
                     </div>
                 </div>
@@ -448,19 +486,56 @@ const ReportForm: React.FC = () => {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-6 p-4 border rounded-md bg-gray-50">
                     <div>
                         <label htmlFor="registeredMen" className={labelClass}>👨 Hommes</label>
-                        <input type="number" name="registeredMen" id="registeredMen" value={formData.registeredMen} onChange={handleChange} min="0" className={inputClass} />
+                        <input 
+                            type="text" 
+                            name="registeredMen" 
+                            id="registeredMen" 
+                            value={formData.registeredMen} 
+                            onChange={handleChange} 
+                            className={inputClass}
+                            pattern="[0-9]*"
+                            inputMode="numeric"
+                            title="Veuillez entrer uniquement des chiffres"
+                        />
                     </div>
                     <div>
                         <label htmlFor="registeredWomen" className={labelClass}>👩 Femmes</label>
-                        <input type="number" name="registeredWomen" id="registeredWomen" value={formData.registeredWomen} onChange={handleChange} min="0" className={inputClass} />
+                        <input 
+                            type="text" 
+                            name="registeredWomen" 
+                            id="registeredWomen" 
+                            value={formData.registeredWomen} 
+                            onChange={handleChange} 
+                            className={inputClass}
+                            pattern="[0-9]*"
+                            inputMode="numeric"
+                            title="Veuillez entrer uniquement des chiffres"
+                        />
                     </div>
                     <div>
                         <label htmlFor="registeredChildren" className={labelClass}>🧒 Enfants</label>
-                        <input type="number" name="registeredChildren" id="registeredChildren" value={formData.registeredChildren} onChange={handleChange} min="0" className={inputClass} />
+                        <input 
+                            type="text" 
+                            name="registeredChildren" 
+                            id="registeredChildren" 
+                            value={formData.registeredChildren} 
+                            onChange={handleChange} 
+                            className={inputClass}
+                            pattern="[0-9]*"
+                            inputMode="numeric"
+                            title="Veuillez entrer uniquement des chiffres"
+                        />
                     </div>
                     <div>
                         <label htmlFor="registeredTotal" className={labelClass}>∑ Total sur Liste</label>
-                        <input type="number" name="registeredTotal" id="registeredTotal" value={calculatedStats.registeredMembers} className={`${inputClass} bg-gray-100 font-bold`} readOnly />
+                        <input 
+                            type="text" 
+                            name="registeredTotal" 
+                            id="registeredTotal" 
+                            value={calculatedStats.registeredMembers} 
+                            className={`${inputClass} bg-gray-100 font-bold`} 
+                            readOnly 
+                        />
                     </div>
                 </div>
               </div>
@@ -470,15 +545,39 @@ const ReportForm: React.FC = () => {
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
                     <div>
                         <label htmlFor="attendees" className={labelClass}>✅ Présents (sur liste)</label>
-                        <input type="number" name="attendees" id="attendees" value={formData.attendees} onChange={handleChange} min="0" className={inputClass} />
+                        <input 
+                            type="text" 
+                            name="attendees" 
+                            id="attendees" 
+                            value={formData.attendees} 
+                            onChange={handleChange} 
+                            className={inputClass}
+                            pattern="[0-9]*"
+                            inputMode="numeric"
+                            title="Veuillez entrer uniquement des chiffres"
+                        />
                     </div>
                     <div>
                         <label htmlFor="absentees" className={labelClass}>❌ Absents (sur liste)</label>
-                        <input type="number" name="absentees" id="absentees" value={calculatedStats.absentees} className={`${inputClass} bg-gray-100`} readOnly />
+                        <input 
+                            type="text" 
+                            name="absentees" 
+                            id="absentees" 
+                            value={calculatedStats.absentees} 
+                            className={`${inputClass} bg-gray-100`} 
+                            readOnly 
+                        />
                     </div>
                     <div>
                         <label htmlFor="totalPresent" className={labelClass}>🔢 Total ce jour</label>
-                        <input type="number" name="totalPresent" id="totalPresent" value={calculatedStats.totalPresent} className={`${inputClass} bg-gray-100 font-bold`} readOnly />
+                        <input 
+                            type="text" 
+                            name="totalPresent" 
+                            id="totalPresent" 
+                            value={calculatedStats.totalPresent} 
+                            className={`${inputClass} bg-gray-100 font-bold`} 
+                            readOnly 
+                        />
                     </div>
                 </div>
               </div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { User, Cell, UserRole, CellStatus } from '../types.ts';
+import { User, Cell, UserRole, CellStatus, Group, District } from '../types.ts';
 import { api } from '../services/api.real';
 import { REGIONS, CELL_CATEGORIES } from '../constants.ts';
 import { SpinnerIcon, PencilIcon, TrashIcon, PlusCircleIcon, ChevronRightIcon } from './icons.tsx';
@@ -45,6 +45,7 @@ const CellManagement: React.FC<{ user: User }> = ({ user }) => {
     const [itemToDelete, setItemToDelete] = useState<string | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const [itemToDeleteName, setItemToDeleteName] = useState('');
+    const [leaderIdentifier, setLeaderIdentifier] = useState<string>('');
 
     const [regionFilter, setRegionFilter] = useState('all');
     const [statusFilter, setStatusFilter] = useState<CellStatus | 'all'>('all');
@@ -147,11 +148,18 @@ const CellManagement: React.FC<{ user: User }> = ({ user }) => {
             if (cellId) {
                 await api.updateCell(cellId, cellData);
                 showToast('Cellule mise à jour avec succès.', 'success');
+                setIsModalOpen(false);
             } else {
-                await api.addCell(cellData);
-                showToast('Cellule ajoutée avec succès.', 'success');
+                const response: any = await api.addCell(cellData);
+                // Le backend retourne { cell, leaderIdentifier }
+                if (response?.leaderIdentifier) {
+                    setLeaderIdentifier(response.leaderIdentifier);
+                    showToast('Cellule et responsable créés avec succès !', 'success');
+                } else {
+                    showToast('Cellule ajoutée avec succès.', 'success');
+                }
+                // Ne pas fermer le modal immédiatement pour afficher l'identifiant
             }
-            setIsModalOpen(false);
             await fetchCells();
         } catch (err: any) {
             showToast(`Erreur lors de l'enregistrement : ${err.message}`, 'error');
@@ -226,6 +234,7 @@ const CellManagement: React.FC<{ user: User }> = ({ user }) => {
                                                 <th className="px-4 py-3">Nom de la Cellule</th>
                                                 <th className="px-4 py-3">Hiérarchie</th>
                                                 <th className="px-4 py-3">Responsable</th>
+                                                <th className="px-4 py-3">Identifiant</th>
                                                 <th className="px-4 py-3">Statut</th>
                                                 <th className="px-4 py-3 text-right">Actions</th>
                                             </tr>
@@ -239,13 +248,22 @@ const CellManagement: React.FC<{ user: User }> = ({ user }) => {
                                                         <td className="px-4 py-3 text-xs">{`${cell.group} > ${cell.district}`}</td>
                                                         <td className="px-4 py-3">{cell.leaderName}</td>
                                                         <td className="px-4 py-3">
+                                                            {(cell as any).leaderIdentifier ? (
+                                                                <span className="font-mono bg-gray-100 px-2 py-1 rounded text-sm">
+                                                                    {(cell as any).leaderIdentifier}
+                                                                </span>
+                                                            ) : (
+                                                                <span className="text-gray-400 text-xs">N/A</span>
+                                                            )}
+                                                        </td>
+                                                        <td className="px-4 py-3">
                                                             <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusInfo?.color}`}>
                                                                 {statusInfo?.label}
                                                             </span>
                                                         </td>
                                                         <td className="px-4 py-3 flex justify-end items-center space-x-3">
                                                             <button onClick={() => handleEdit(cell)} className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded-full" title="Modifier"><PencilIcon className="h-5 w-5"/></button>
-                                                            <button onClick={() => handleDeleteRequest(cell.id, cell.cellName)} className="p-1 text-red-600 hover:text-red-800 hover:bg-red-100 rounded-full" title="Supprimer"><TrashIcon className="h-5 w-5"/></button>
+                                                            <button onClick={() => handleDeleteRequest(cell.id || (cell as any)._id, cell.cellName)} className="p-1 text-red-600 hover:text-red-800 hover:bg-red-100 rounded-full" title="Supprimer"><TrashIcon className="h-5 w-5"/></button>
                                                         </td>
                                                     </tr>
                                                 );
@@ -264,8 +282,31 @@ const CellManagement: React.FC<{ user: User }> = ({ user }) => {
                 )}
             </div>
             
-            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingCell?.id ? 'Modifier la Cellule' : 'Ajouter une Cellule'}>
-                {editingCell && <CellForm cell={editingCell} onSave={handleSave} onCancel={() => setIsModalOpen(false)} user={user} />}
+            <Modal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setLeaderIdentifier(''); }} title={editingCell?.id ? 'Modifier la Cellule' : 'Ajouter une Cellule'}>
+                {leaderIdentifier ? (
+                    <div className="p-6">
+                        <div className="mb-6 p-4 bg-green-50 border-2 border-green-500 rounded-lg">
+                            <h3 className="text-lg font-bold text-green-800 mb-2">✅ Cellule et Responsable créés avec succès !</h3>
+                            <p className="text-green-700 mb-3">
+                                <strong>Identifiant de connexion du responsable :</strong> 
+                                <span className="text-2xl font-mono ml-2 bg-white px-3 py-1 rounded border border-green-300">
+                                    {leaderIdentifier}
+                                </span>
+                            </p>
+                            <p className="text-sm text-green-600 mb-4">
+                                ⚠️ Veuillez noter cet identifiant et le communiquer au responsable de cellule.
+                            </p>
+                            <button
+                                onClick={() => { setIsModalOpen(false); setLeaderIdentifier(''); }}
+                                className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition-colors"
+                            >
+                                Fermer
+                            </button>
+                        </div>
+                    </div>
+                ) : (
+                    editingCell && <CellForm cell={editingCell} onSave={handleSave} onCancel={() => { setIsModalOpen(false); setLeaderIdentifier(''); }} user={user} />
+                )}
             </Modal>
 
             <ConfirmationModal
@@ -285,10 +326,41 @@ const CellManagement: React.FC<{ user: User }> = ({ user }) => {
 const CellForm: React.FC<{ cell: Partial<Cell>, onSave: (data: Omit<Cell, 'id'>, cellId?: string) => void, onCancel: () => void, user: User }> = ({ cell, onSave, onCancel, user }) => {
     const [formData, setFormData] = useState(cell);
     const [isSaving, setIsSaving] = useState(false);
+    const [allGroups, setAllGroups] = useState<Group[]>([]);
+    const [allDistricts, setAllDistricts] = useState<District[]>([]);
     
     const isLittoral = useMemo(() => formData.region === 'Littoral', [formData.region]);
     const groupLabel = isLittoral ? 'Groupe' : 'District';
     const districtLabel = isLittoral ? 'District' : 'Localité';
+
+    // Charger les groupes et districts depuis l'API
+    useEffect(() => {
+        const fetchHierarchyData = async () => {
+            try {
+                const [groups, districts] = await Promise.all([
+                    api.getGroups(),
+                    api.getDistricts()
+                ]);
+                setAllGroups(groups);
+                setAllDistricts(districts);
+            } catch (error) {
+                console.error('Erreur lors du chargement des données de hiérarchie:', error);
+            }
+        };
+        fetchHierarchyData();
+    }, []);
+
+    // Filtrer les groupes par région
+    const groupsInRegion = useMemo(() => {
+        if (!formData.region) return [];
+        return allGroups.filter(g => g.region === formData.region).map(g => g.name);
+    }, [formData.region, allGroups]);
+
+    // Filtrer les districts par groupe
+    const districtsInGroup = useMemo(() => {
+        if (!formData.group) return [];
+        return allDistricts.filter(d => d.group === formData.group).map(d => d.name);
+    }, [formData.group, allDistricts]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -304,8 +376,12 @@ const CellForm: React.FC<{ cell: Partial<Cell>, onSave: (data: Omit<Cell, 'id'>,
         }
         setIsSaving(true);
         // The id is on the initial `cell` object but not in the `formData` type for saving
-        const { id, ...saveData } = formData;
-        await onSave(saveData as Omit<Cell, 'id'>, id);
+        // Exclure à la fois 'id' et '_id' pour éviter les conflits MongoDB
+        const { id, _id, ...saveData } = formData as any;
+        // Utiliser _id comme fallback si id est undefined (MongoDB retourne _id)
+        const cellId = id || _id;
+        console.log('CellForm handleSubmit - id:', id, '_id:', _id, 'cellId:', cellId, 'formData:', formData);
+        await onSave(saveData as Omit<Cell, 'id'>, cellId);
         setIsSaving(false);
     };
     
@@ -323,11 +399,33 @@ const CellForm: React.FC<{ cell: Partial<Cell>, onSave: (data: Omit<Cell, 'id'>,
             </div>
             <div>
                 <label htmlFor="group" className={labelClass}>{groupLabel}</label>
-                <input type="text" id="group" name="group" value={formData.group || ''} onChange={handleChange} className={user.role === UserRole.GROUP_PASTOR || user.role === UserRole.DISTRICT_PASTOR ? disabledInputClass : inputClass} disabled={user.role === UserRole.GROUP_PASTOR || user.role === UserRole.DISTRICT_PASTOR} required />
+                <select 
+                    id="group" 
+                    name="group" 
+                    value={formData.group || ''} 
+                    onChange={handleChange} 
+                    className={user.role === UserRole.GROUP_PASTOR || user.role === UserRole.DISTRICT_PASTOR ? disabledInputClass : inputClass} 
+                    disabled={user.role === UserRole.GROUP_PASTOR || user.role === UserRole.DISTRICT_PASTOR || !formData.region} 
+                    required
+                >
+                    <option value="">-- Sélectionner un {groupLabel.toLowerCase()} --</option>
+                    {groupsInRegion.map(g => <option key={g} value={g}>{g}</option>)}
+                </select>
             </div>
              <div>
                 <label htmlFor="district" className={labelClass}>{districtLabel}</label>
-                <input type="text" id="district" name="district" value={formData.district || ''} onChange={handleChange} className={user.role === UserRole.DISTRICT_PASTOR ? disabledInputClass : inputClass} disabled={user.role === UserRole.DISTRICT_PASTOR} required />
+                <select 
+                    id="district" 
+                    name="district" 
+                    value={formData.district || ''} 
+                    onChange={handleChange} 
+                    className={user.role === UserRole.DISTRICT_PASTOR ? disabledInputClass : inputClass} 
+                    disabled={user.role === UserRole.DISTRICT_PASTOR || !formData.group} 
+                    required
+                >
+                    <option value="">-- Sélectionner un {districtLabel.toLowerCase()} --</option>
+                    {districtsInGroup.map(d => <option key={d} value={d}>{d}</option>)}
+                </select>
             </div>
              <div>
                 <label htmlFor="cellName" className={labelClass}>Nom de la Cellule</label>

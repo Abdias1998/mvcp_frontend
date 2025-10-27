@@ -49,6 +49,11 @@ const RegisterPage: React.FC = () => {
         fetchHierarchyData();
     }, [showToast]);
 
+    // Déterminer si la région est Littoral pour adapter la terminologie
+    const isLittoral = useMemo(() => formData.region === 'Littoral', [formData.region]);
+    const groupLabel = isLittoral ? 'Groupe' : 'District';
+    const districtLabel = isLittoral ? 'District' : 'Localité';
+
     // Filtrer les groupes par région
     const groupsInRegion = useMemo(() => {
         if (!formData.region) return [];
@@ -141,16 +146,6 @@ const RegisterPage: React.FC = () => {
                 </div>
                 
                 <hr className="my-4"/>
-
-                <div>
-                    <label htmlFor="role" className={labelClass}>Votre Rôle</label>
-                    <select id="role" name="role" value={formData.role} onChange={handleRoleChange} className={inputClass} required>
-                        <option value={UserRole.REGIONAL_PASTOR}>Pasteur Régional</option>
-                        <option value={UserRole.GROUP_PASTOR}>Pasteur de Groupe</option>
-                        <option value={UserRole.DISTRICT_PASTOR}>Pasteur de District</option>
-                    </select>
-                </div>
-                
                 <div>
                     <label htmlFor="region" className={labelClass}>Région</label>
                     <select id="region" name="region" value={formData.region} onChange={handleChange} className={inputClass} required>
@@ -159,9 +154,24 @@ const RegisterPage: React.FC = () => {
                     </select>
                 </div>
 
+                <hr className="my-4"/>
+                <div>
+                    <label htmlFor="role" className={labelClass}>Votre Rôle</label>
+                    <select id="role" name="role" value={formData.role} onChange={handleRoleChange} className={inputClass} required>
+                        <option value={UserRole.REGIONAL_PASTOR}>Pasteur Régional</option>
+                        <option value={UserRole.GROUP_PASTOR}>
+                            {isLittoral ? 'Pasteur de Groupe' : 'Pasteur de District'}
+                        </option>
+                        <option value={UserRole.DISTRICT_PASTOR}>
+                            {isLittoral ? 'Pasteur de District' : 'Pasteur de Localité'}
+                        </option>
+                    </select>
+                </div>
+                
+               
                 {(formData.role === UserRole.GROUP_PASTOR || formData.role === UserRole.DISTRICT_PASTOR) && (
                      <div>
-                        <label htmlFor="group" className={labelClass}>Groupe</label>
+                        <label htmlFor="group" className={labelClass}>{groupLabel}</label>
                         <select 
                             id="group" 
                             name="group" 
@@ -171,7 +181,7 @@ const RegisterPage: React.FC = () => {
                             required 
                             disabled={!formData.region}
                         >
-                            <option value="">-- Sélectionner un groupe --</option>
+                            <option value="">-- Sélectionner {isLittoral ? 'un groupe' : 'un district'} --</option>
                             {groupsInRegion.map(g => <option key={g} value={g}>{g}</option>)}
                         </select>
                     </div>
@@ -179,7 +189,7 @@ const RegisterPage: React.FC = () => {
 
                  {formData.role === UserRole.DISTRICT_PASTOR && (
                      <div>
-                        <label htmlFor="district" className={labelClass}>District</label>
+                        <label htmlFor="district" className={labelClass}>{districtLabel}</label>
                         <select 
                             id="district" 
                             name="district" 
@@ -189,7 +199,7 @@ const RegisterPage: React.FC = () => {
                             required 
                             disabled={!formData.group}
                         >
-                            <option value="">-- Sélectionner un district --</option>
+                            <option value="">-- Sélectionner {isLittoral ? 'un district' : 'une localité'} --</option>
                             {districtsInGroup.map(d => <option key={d} value={d}>{d}</option>)}
                         </select>
                     </div>
