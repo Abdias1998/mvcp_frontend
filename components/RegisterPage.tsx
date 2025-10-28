@@ -111,128 +111,197 @@ const RegisterPage: React.FC = () => {
         }
     };
     
-    const inputClass = "w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500";
+    const inputClass = "w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all";
     const labelClass = "block text-sm font-medium text-gray-700 mb-1";
 
     return (
-        <div className="max-w-md mx-auto bg-white p-8 rounded-xl shadow-lg mt-10">
-            <LogoIcon className="h-20 w-20 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-gray-800 mb-2 text-center">Créer un Compte</h2>
-            <p className="text-gray-600 mb-6 text-center">Votre compte sera soumis à validation.</p>
-            <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                    <label htmlFor="name" className={labelClass}>Nom Complet</label>
-                    <input type="text" id="name" name="name" value={formData.name} onChange={handleChange} className={inputClass} required />
-                </div>
-                <div>
-                    <label htmlFor="email" className={labelClass}>Email (facultatif)</label>
-                    <input type="email" id="email" name="email" value={formData.email} onChange={handleChange} className={inputClass} />
-                </div>
-                 <div>
-                    <label htmlFor="contact" className={labelClass}>Numéro de téléphone</label>
-                    <input 
-                        type="tel" 
-                        id="contact" 
-                        name="contact" 
-                        value={formData.contact || ''} 
-                        onChange={handleChange} 
-                        className={inputClass} 
-                        placeholder="Ex: 0123456789"
-                        required
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+            <div className="max-w-7xl w-full bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row">
+                {/* Partie gauche - Image Unsplash */}
+                <div className="md:w-1/2 relative">
+                    <img 
+                        src="./register.avif" 
+                        alt="Groupe d'étude biblique" 
+                        className="w-full h-64 md:h-full object-cover"
                     />
-                </div>
-                <div>
-                    <label htmlFor="password" className={labelClass}>Mot de Passe (min. 6 caractères)</label>
-                    <div className="relative">
-                        <input 
-                            type={showPassword ? "text" : "password"} 
-                            id="password" 
-                            name="password" 
-                            value={formData.password} 
-                            onChange={handleChange} 
-                            className={`${inputClass} pr-10`} 
-                            required 
-                            minLength={6} 
-                        />
-                        <button
-                            type="button"
-                            onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
-                            aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
-                        >
-                            {showPassword ? <EyeOffIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
-                        </button>
+                    <div className="absolute inset-0 bg-gradient-to-t from-blue-900/80 to-transparent flex items-end p-8">
+                        <div className="text-white">
+                            <h2 className="text-3xl font-bold mb-2">Rejoignez-nous</h2>
+                            <p className="text-blue-100">Créez votre compte pour faire partie de la communauté MVCP-BENIN.</p>
+                        </div>
                     </div>
-                </div>
-                
-                <hr className="my-4"/>
-                <div>
-                    <label htmlFor="region" className={labelClass}>Région</label>
-                    <select id="region" name="region" value={formData.region} onChange={handleChange} className={inputClass} required>
-                         <option value="">-- Sélectionner une région --</option>
-                        {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
-                    </select>
                 </div>
 
-                <hr className="my-4"/>
-                <div>
-                    <label htmlFor="role" className={labelClass}>Votre Rôle</label>
-                    <select id="role" name="role" value={formData.role} onChange={handleRoleChange} className={inputClass} required>
-                        <option value={UserRole.REGIONAL_PASTOR}>Pasteur Régional</option>
-                        <option value={UserRole.GROUP_PASTOR}>
-                            {isLittoral ? 'Pasteur de Groupe' : 'Pasteur de District'}
-                        </option>
-                        <option value={UserRole.DISTRICT_PASTOR}>
-                            {isLittoral ? 'Pasteur de District' : 'Pasteur de Localité'}
-                        </option>
-                    </select>
-                </div>
-                
-               
-                {(formData.role === UserRole.GROUP_PASTOR || formData.role === UserRole.DISTRICT_PASTOR) && (
-                     <div>
-                        <label htmlFor="group" className={labelClass}>{groupLabel}</label>
-                        <select 
-                            id="group" 
-                            name="group" 
-                            value={formData.group || ''} 
-                            onChange={handleChange} 
-                            className={inputClass} 
-                            required 
-                            disabled={!formData.region}
-                        >
-                            <option value="">-- Sélectionner {isLittoral ? 'un groupe' : 'un district'} --</option>
-                            {groupsInRegion.map(g => <option key={g} value={g}>{g}</option>)}
-                        </select>
-                    </div>
-                )}
+                {/* Partie droite - Formulaire d'inscription */}
+                <div className="md:w-1/2 p-8 md:p-12 overflow-y-auto max-h-screen">
+                    <div className="max-w-md mx-auto w-full">
+                        <LogoIcon className="h-16 w-16 mx-auto mb-6 text-blue-700" />
+                        <h2 className="text-2xl font-bold text-gray-800 mb-2 text-center">Créer un Compte</h2>
+                        <p className="text-gray-600 mb-6 text-center text-sm">Votre compte sera soumis à validation.</p>
+                        
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                            <div>
+                                <label htmlFor="name" className={labelClass}>Nom Complet</label>
+                                <input 
+                                    type="text" 
+                                    id="name" 
+                                    name="name" 
+                                    value={formData.name} 
+                                    onChange={handleChange} 
+                                    className={inputClass} 
+                                    placeholder="Entrez votre nom complet"
+                                    required 
+                                />
+                            </div>
+                            
+                            <div>
+                                <label htmlFor="email" className={labelClass}>Email (facultatif)</label>
+                                <input 
+                                    type="email" 
+                                    id="email" 
+                                    name="email" 
+                                    value={formData.email} 
+                                    onChange={handleChange} 
+                                    className={inputClass}
+                                    placeholder="exemple@email.com"
+                                />
+                            </div>
+                            
+                            <div>
+                                <label htmlFor="contact" className={labelClass}>Numéro de téléphone</label>
+                                <input 
+                                    type="tel" 
+                                    id="contact" 
+                                    name="contact" 
+                                    value={formData.contact || ''} 
+                                    onChange={handleChange} 
+                                    className={inputClass} 
+                                    placeholder="Ex: 0123456789"
+                                    required
+                                />
+                            </div>
+                            
+                            <div>
+                                <label htmlFor="password" className={labelClass}>Mot de Passe (min. 6 caractères)</label>
+                                <div className="relative">
+                                    <input 
+                                        type={showPassword ? "text" : "password"} 
+                                        id="password" 
+                                        name="password" 
+                                        value={formData.password} 
+                                        onChange={handleChange} 
+                                        className={`${inputClass} pr-12`} 
+                                        placeholder="Créez un mot de passe"
+                                        required 
+                                        minLength={6} 
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                                        aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                                    >
+                                        {showPassword ? <EyeOffIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div className="border-t border-gray-200 pt-4 mt-4">
+                                <h3 className="text-sm font-semibold text-gray-700 mb-3">Informations Hiérarchiques</h3>
+                                
+                                <div className="space-y-4">
+                                    <div>
+                                        <label htmlFor="region" className={labelClass}>Région</label>
+                                        <select 
+                                            id="region" 
+                                            name="region" 
+                                            value={formData.region} 
+                                            onChange={handleChange} 
+                                            className={inputClass} 
+                                            required
+                                        >
+                                            <option value="">-- Sélectionner une région --</option>
+                                            {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
+                                        </select>
+                                    </div>
 
-                 {formData.role === UserRole.DISTRICT_PASTOR && (
-                     <div>
-                        <label htmlFor="district" className={labelClass}>{districtLabel}</label>
-                        <select 
-                            id="district" 
-                            name="district" 
-                            value={formData.district || ''} 
-                            onChange={handleChange} 
-                            className={inputClass} 
-                            required 
-                            disabled={!formData.group}
-                        >
-                            <option value="">-- Sélectionner {isLittoral ? 'un district' : 'une localité'} --</option>
-                            {districtsInGroup.map(d => <option key={d} value={d}>{d}</option>)}
-                        </select>
+                                    <div>
+                                        <label htmlFor="role" className={labelClass}>Votre Rôle</label>
+                                        <select 
+                                            id="role" 
+                                            name="role" 
+                                            value={formData.role} 
+                                            onChange={handleRoleChange} 
+                                            className={inputClass} 
+                                            required
+                                        >
+                                            <option value={UserRole.REGIONAL_PASTOR}>Pasteur Régional</option>
+                                            <option value={UserRole.GROUP_PASTOR}>
+                                                {isLittoral ? 'Pasteur de Groupe' : 'Pasteur de District'}
+                                            </option>
+                                            <option value={UserRole.DISTRICT_PASTOR}>
+                                                {isLittoral ? 'Pasteur de District' : 'Pasteur de Localité'}
+                                            </option>
+                                        </select>
+                                    </div>
+                                    
+                                    {(formData.role === UserRole.GROUP_PASTOR || formData.role === UserRole.DISTRICT_PASTOR) && (
+                                        <div>
+                                            <label htmlFor="group" className={labelClass}>{groupLabel}</label>
+                                            <select 
+                                                id="group" 
+                                                name="group" 
+                                                value={formData.group || ''} 
+                                                onChange={handleChange} 
+                                                className={inputClass} 
+                                                required 
+                                                disabled={!formData.region}
+                                            >
+                                                <option value="">-- Sélectionner {isLittoral ? 'un groupe' : 'un district'} --</option>
+                                                {groupsInRegion.map(g => <option key={g} value={g}>{g}</option>)}
+                                            </select>
+                                        </div>
+                                    )}
+
+                                    {formData.role === UserRole.DISTRICT_PASTOR && (
+                                        <div>
+                                            <label htmlFor="district" className={labelClass}>{districtLabel}</label>
+                                            <select 
+                                                id="district" 
+                                                name="district" 
+                                                value={formData.district || ''} 
+                                                onChange={handleChange} 
+                                                className={inputClass} 
+                                                required 
+                                                disabled={!formData.group}
+                                            >
+                                                <option value="">-- Sélectionner {isLittoral ? 'un district' : 'une localité'} --</option>
+                                                {districtsInGroup.map(d => <option key={d} value={d}>{d}</option>)}
+                                            </select>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                            
+                            <button 
+                                type="submit" 
+                                disabled={loading} 
+                                className="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-blue-400 disabled:cursor-not-allowed flex justify-center items-center space-x-2 transition-all transform hover:scale-[1.02] mt-6"
+                            >
+                                {loading && <SpinnerIcon className="h-5 w-5"/>}
+                                <span>{loading ? 'Inscription...' : "S'inscrire"}</span>
+                            </button>
+                        </form>
+                        
+                        <p className="text-center text-sm text-gray-600 mt-6">
+                            Vous avez déjà un compte ? {' '}
+                            <Link to="/login" className="font-medium text-blue-600 hover:text-blue-500 transition-colors">
+                                Se connecter
+                            </Link>
+                        </p>
                     </div>
-                )}
-                
-                <button type="submit" disabled={loading} className="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline disabled:bg-blue-400 flex justify-center items-center space-x-2 transition-colors">
-                    {loading && <SpinnerIcon className="h-5 w-5"/>}
-                    <span>{loading ? 'Inscription...' : "S'inscrire"}</span>
-                </button>
-            </form>
-            <p className="text-center text-sm text-gray-600 mt-4">
-                Vous avez déjà un compte ? <Link to="/login" className="font-medium text-blue-600 hover:text-blue-500">Se connecter</Link>
-            </p>
+                </div>
+            </div>
         </div>
     );
 };

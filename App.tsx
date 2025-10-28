@@ -120,99 +120,100 @@ const HomePage: React.FC = () => {
     const { user } = useAuth();
     
     return (
-        <div className="text-center">
-            <div className="bg-white p-8 sm:p-12 rounded-xl shadow-2xl flex flex-col items-center">
-                <LogoIcon className="h-32 w-32 mb-6" />
-                <h1 className="text-3xl md:text-4xl font-extrabold text-gray-800 mb-2">
-                    Ministère de la Vie Chrétienne Profonde au BENIN
-                </h1>
-                <p className="text-lg md:text-xl text-gray-600 mb-8">
-                    Les cellules de maison, la croissance de l'Église. 
-                </p>
-                <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
-                    {user ? (
-                        <Link to="/rapport" className="bg-blue-700 text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-800 transition-transform transform hover:scale-105 shadow-lg">
-                            Soumettre un Rapport
-                        </Link>
-                    ) : (
-                        <>
-                            <Link to="/login" className="bg-blue-700 text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-800 transition-transform transform hover:scale-105 shadow-lg">
-                                Connexion
-                            </Link>
-                            <Link to="/register" className="bg-gray-700 text-white font-bold py-3 px-8 rounded-lg hover:bg-gray-800 transition-transform transform hover:scale-105 shadow-lg">
-                                S'inscrire
-                            </Link>
-                        </>
-                    )}
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+            <div className="max-w-7xl w-full bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row">
+                {/* Partie gauche - Image Unsplash */}
+                <div className="md:w-1/2 relative">
+                    <img 
+                        src="./accueil.png" 
+                        alt="Groupe d'étude biblique" 
+                        className="w-full h-64 md:h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-blue-900/80 to-transparent flex items-end p-8">
+                        <div className="text-white">
+                            <h2 className="text-3xl font-bold mb-2">Bienvenue</h2>
+                            <p className="text-blue-100">Les cellules de maison, la croissance de l'Église.</p>
+                        </div>
+                    </div>
                 </div>
 
-                 {/* Call to action Section - Only for logged in users */}
-                {user && (
-                    <div className="mt-12 w-full">
-                        <div className="p-6 bg-blue-50 border border-blue-200 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300">
-                            <h2 className="text-2xl font-bold text-gray-700">Prêt à soumettre votre rapport ?</h2>
-                            <p className="text-gray-600 mt-2 mb-6">La soumission régulière des rapports est essentielle pour le suivi et la croissance de nos cellules. Ne tardez pas !</p>
-                            <Link to="/rapport" className="inline-flex items-center justify-center bg-blue-700 text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-800 transition-transform transform hover:scale-105 shadow-lg">
-                                <DocumentTextIcon className="h-5 w-5 mr-2" />
-                                Soumettre le rapport de cette semaine
-                            </Link>
-                        </div>
-                    </div>
-                )}
+                {/* Partie droite - Contenu */}
+                <div className="md:w-1/2 p-8 md:p-12 flex flex-col justify-center">
+                    <div className="max-w-md mx-auto w-full">
+                        <LogoIcon className="h-20 w-20 mx-auto mb-6 text-blue-700" />
+                        <h1 className="text-3xl font-extrabold text-gray-800 mb-3 text-center">
+                            Ministère de la Vie Chrétienne Profonde
+                        </h1>
+                        <p className="text-lg text-gray-600 mb-8 text-center">
+                            MVCP-BENIN
+                        </p>
 
-                {/* Weekly Programs Section */}
-                {/* <div className="mt-16 pt-10 border-t w-full space-y-6">
-                    <h2 className="text-2xl font-bold text-gray-700">Nos Programmes Hebdomadaires</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="p-6 bg-gray-50 rounded-lg border border-gray-200 hover:shadow-lg transition-shadow duration-300 flex flex-col items-center text-center">
-                            <BookOpenIcon className="h-16 w-16 text-blue-600 mb-4" />
-                            <h3 className="text-xl font-semibold text-gray-800">Lundi</h3>
-                            <p className="text-gray-600 mt-1 font-medium">17:50 - 20:30</p>
-                            <p className="text-gray-700 mt-2 font-bold uppercase text-sm">Étude Biblique</p>
+                        {/* Boutons d'action */}
+                        <div className="space-y-4">
+                            {user ? (
+                                <>
+                                    <Link 
+                                        to="/rapport" 
+                                        className="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 px-6 rounded-lg transition-all transform hover:scale-[1.02] shadow-lg flex items-center justify-center space-x-2"
+                                    >
+                                        <DocumentTextIcon className="h-5 w-5" />
+                                        <span>Soumettre un Rapport</span>
+                                    </Link>
+                                    
+                                    {/* Call to action pour utilisateurs connectés */}
+                                    <div className="mt-8 p-6 bg-blue-50 border border-blue-200 rounded-xl">
+                                        <h3 className="text-lg font-bold text-gray-700 mb-2">
+                                            Prêt à soumettre votre rapport ?
+                                        </h3>
+                                        <p className="text-sm text-gray-600">
+                                            La soumission régulière des rapports est essentielle pour le suivi et la croissance de nos cellules.
+                                        </p>
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <Link 
+                                        to="/login" 
+                                        className="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 px-6 rounded-lg transition-all transform hover:scale-[1.02] shadow-lg flex items-center justify-center"
+                                    >
+                                        Connexion
+                                    </Link>
+                                    <Link 
+                                        to="/register" 
+                                        className="w-full bg-gray-700 hover:bg-gray-800 text-white font-bold py-3 px-6 rounded-lg transition-all transform hover:scale-[1.02] shadow-lg flex items-center justify-center"
+                                    >
+                                        S'inscrire
+                                    </Link>
+                                    
+                                    {/* Message de bienvenue pour visiteurs */}
+                                    <div className="mt-8 p-6 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl">
+                                        <h3 className="text-lg font-bold text-gray-700 mb-2 flex items-center">
+                                            <BookOpenIcon className="h-5 w-5 mr-2 text-blue-600" />
+                                            Notre Mission
+                                        </h3>
+                                        <p className="text-sm text-gray-600">
+                                            Atteindre les âmes pour Christ à travers les cellules de maison. Rejoignez-nous dans cette mission de croissance spirituelle et de communion fraternelle.
+                                        </p>
+                                    </div>
+                                </>
+                            )}
                         </div>
-                        <div className="p-6 bg-gray-50 rounded-lg border border-gray-200 hover:shadow-lg transition-shadow duration-300 flex flex-col items-center text-center">
-                            <PreachIcon className="h-16 w-16 text-blue-600 mb-4" />
-                            <h3 className="text-xl font-semibold text-gray-800">Jeudi</h3>
-                            <p className="text-gray-600 mt-1 font-medium">17:50 - 20:30</p>
-                            <p className="text-gray-700 mt-2 font-bold uppercase text-xs">Heure de Réveil, Miracle &amp; Formation Évangélisation</p>
-                        </div>
-                        <div className="p-6 bg-gray-50 rounded-lg border border-gray-200 hover:shadow-lg transition-shadow duration-300 flex flex-col items-center text-center">
-                            <PrayerGroupIcon className="h-16 w-16 text-blue-600 mb-4" />
-                            <h3 className="text-xl font-semibold text-gray-800">Dimanche</h3>
-                            <p className="text-gray-600 mt-1 font-medium">07:45 - 11:30</p>
-                            <p className="text-gray-700 mt-2 font-bold uppercase text-sm">Culte du Dimanche</p>
-                        </div>
-                    </div>
-                </div> */}
 
-                {/* Mission Cards section */}
-
-                {/* <div className="mt-16 pt-10 border-t w-full space-y-6">
-                    <h2 className="text-2xl font-bold text-gray-700">Notre Mission en Action</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                   
-                        <div className="group block p-6 bg-gray-50 rounded-lg border border-gray-200 hover:shadow-xl hover:scale-105 transition-all duration-300">
-                            <div className="flex flex-col items-center text-center">
-                                <PreachIcon className="h-20 w-20 text-blue-700 mb-4 transform group-hover:-translate-y-1 transition-transform duration-300" />
-                                <h3 className="text-xl font-semibold text-gray-800">Partager la Foi</h3>
-                                <p className="text-gray-600 mt-2 max-w-xs">
-                                    Atteindre les âmes pour Christ est au cœur de notre mission. Chaque cellule est une base pour l'évangélisation.
-                                </p>
+                        {/* Section informative */}
+                        <div className="mt-8 pt-6 border-t border-gray-200">
+                            <div className="grid grid-cols-2 gap-4 text-center">
+                                <div className="p-4 bg-gray-50 rounded-lg">
+                                    <PrayerGroupIcon className="h-8 w-8 mx-auto text-blue-600 mb-2" />
+                                    <p className="text-xs font-semibold text-gray-700">Cellules de Maison</p>
+                                </div>
+                                <div className="p-4 bg-gray-50 rounded-lg">
+                                    <PreachIcon className="h-8 w-8 mx-auto text-blue-600 mb-2" />
+                                    <p className="text-xs font-semibold text-gray-700">Évangélisation</p>
+                                </div>
                             </div>
                         </div>
-
-                 
-                        <Link to="/rapport" className="group block p-6 bg-gray-50 rounded-lg border border-gray-200 hover:shadow-xl hover:scale-105 transition-all duration-300">
-                             <div className="flex flex-col items-center text-center">
-                                <PrayerGroupIcon className="h-20 w-20 text-blue-700 mb-4 transform group-hover:-translate-y-1 transition-transform duration-300" />
-                                <h3 className="text-xl font-semibold text-gray-800">Grandir Ensemble</h3>
-                                <p className="text-gray-600 mt-2 max-w-xs">
-                                   La prière et la communion sont les piliers de nos cellules. Soumettez votre rapport pour participer à cette croissance.
-                                </p>
-                            </div>
-                        </Link>
                     </div>
-                </div> */}
+                </div>
             </div>
         </div>
     );
@@ -258,57 +259,100 @@ const LoginPage: React.FC = () => {
     };
 
     return (
-        <div className="max-w-md mx-auto bg-white p-8 rounded-xl shadow-lg mt-10">
-            <LogoIcon className="h-20 w-20 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-gray-800 mb-2 text-center">Connexion</h2>
-            <p className="text-gray-600 mb-6 text-center">Accédez à votre tableau de bord.</p>
-            <form onSubmit={handleSubmit} className="space-y-4">
-                 <div>
-                    <label htmlFor="identifier" className="block text-sm font-medium text-gray-700">Email ou Numéro de téléphone</label>
-                    <input 
-                        type="text" 
-                        id="identifier" 
-                        value={identifier} 
-                        onChange={e => setIdentifier(e.target.value)} 
-                        required 
-                        className="mt-1 w-full p-2 border rounded-md" 
-                        placeholder=""
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+            <div className="max-w-7xl w-full bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row">
+                {/* Partie gauche - Image Unsplash */}
+                <div className="md:w-1/2 relative">
+                    <img 
+                        src="./login.jpg" 
+                        alt="Groupe d'étude biblique" 
+                        className="w-full h-64 md:h-full object-cover"
                     />
-                </div>
-                <div>
-                    <label htmlFor="password"  className="block text-sm font-medium text-gray-700">Mot de passe</label>
-                    <div className="relative">
-                        <input 
-                            type={showPassword ? "text" : "password"} 
-                            id="password" 
-                            value={password} 
-                            onChange={e => setPassword(e.target.value)} 
-                            required 
-                            className="mt-1 w-full p-2 pr-10 border rounded-md" 
-                        />
-                        <button
-                            type="button"
-                            onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
-                            aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
-                        >
-                            {showPassword ? <EyeOffIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
-                        </button>
+                    <div className="absolute inset-0 bg-gradient-to-t from-blue-900/80 to-transparent flex items-end p-8">
+                        <div className="text-white">
+                            <h2 className="text-3xl font-bold mb-2">Connectez-vous</h2>
+                            <p className="text-blue-100">Connectez-vous pour accéder à votre tableau de bord.</p>
+                        </div>
                     </div>
                 </div>
-                <div className="text-right text-sm">
-                    <a href="#" onClick={handleForgotPassword} className="font-medium text-blue-600 hover:text-blue-500">
-                        Mot de passe oublié ?
-                    </a>
+
+                {/* Partie droite - Formulaire de connexion */}
+                <div className="md:w-1/2 p-8 md:p-12 flex flex-col justify-center">
+                    <div className="max-w-md mx-auto w-full">
+                        <LogoIcon className="h-16 w-16 mx-auto mb-6 text-blue-700" />
+                        <h2 className="text-2xl font-bold text-gray-800 mb-2 text-center">Connexion</h2>
+                        <p className="text-gray-600 mb-8 text-center">Accédez à votre tableau de bord.</p>
+                        
+                        <form onSubmit={handleSubmit} className="space-y-5">
+                            <div>
+                                <label htmlFor="identifier" className="block text-sm font-medium text-gray-700 mb-1">
+                                    Email ou Numéro de téléphone
+                                </label>
+                                <input 
+                                    type="text" 
+                                    id="identifier" 
+                                    value={identifier} 
+                                    onChange={e => setIdentifier(e.target.value)} 
+                                    required 
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" 
+                                    placeholder="Entrez votre email ou téléphone"
+                                />
+                            </div>
+                            
+                            <div>
+                                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                                    Mot de passe
+                                </label>
+                                <div className="relative">
+                                    <input 
+                                        type={showPassword ? "text" : "password"} 
+                                        id="password" 
+                                        value={password} 
+                                        onChange={e => setPassword(e.target.value)} 
+                                        required 
+                                        className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" 
+                                        placeholder="Entrez votre mot de passe"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                                        aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                                    >
+                                        {showPassword ? <EyeOffIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div className="text-right">
+                                <a 
+                                    href="#" 
+                                    onClick={handleForgotPassword} 
+                                    className="text-sm font-medium text-blue-600 hover:text-blue-500 transition-colors"
+                                >
+                                    Mot de passe oublié ?
+                                </a>
+                            </div>
+                            
+                            <button 
+                                type="submit" 
+                                disabled={loading} 
+                                className="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-blue-400 disabled:cursor-not-allowed flex justify-center items-center space-x-2 transition-all transform hover:scale-[1.02]"
+                            >
+                                {loading && <SpinnerIcon className="h-5 w-5"/>}
+                                <span>{loading ? 'Connexion...' : 'Se connecter'}</span>
+                            </button>
+                        </form>
+                        
+                        <p className="text-center text-sm text-gray-600 mt-6">
+                            Vous n'avez pas de compte ? {' '}
+                            <Link to="/register" className="font-medium text-blue-600 hover:text-blue-500 transition-colors">
+                                Créer un compte
+                            </Link>
+                        </p>
+                    </div>
                 </div>
-                <button type="submit" disabled={loading} className="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline disabled:bg-blue-400 flex justify-center items-center space-x-2 transition-colors">
-                    {loading && <SpinnerIcon className="h-5 w-5"/>}
-                    <span>{loading ? 'Connexion...' : 'Se connecter'}</span>
-                </button>
-            </form>
-             <p className="text-center text-sm text-gray-600 mt-4">
-                Pas encore de compte ? <Link to="/register" className="font-medium text-blue-600 hover:text-blue-500">S'inscrire</Link>
-            </p>
+            </div>
         </div>
     );
 };
