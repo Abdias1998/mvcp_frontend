@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext.tsx';
 import { useToast } from '../contexts/ToastContext.tsx';
 import { PastorData, UserRole, Group, District } from '../types.ts';
 import { REGIONS } from '../constants.ts';
-import { LogoIcon, SpinnerIcon } from './icons.tsx';
+import { LogoIcon, SpinnerIcon, EyeIcon, EyeOffIcon } from './icons.tsx';
 
 const RegisterPage: React.FC = () => {
     const [formData, setFormData] = useState<PastorData>({
@@ -19,6 +19,7 @@ const RegisterPage: React.FC = () => {
         district: '',
     });
     const [loading, setLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
     const [allGroups, setAllGroups] = useState<Group[]>([]);
     const [allDistricts, setAllDistricts] = useState<District[]>([]);
     const { user } = useAuth();
@@ -142,7 +143,26 @@ const RegisterPage: React.FC = () => {
                 </div>
                 <div>
                     <label htmlFor="password" className={labelClass}>Mot de Passe (min. 6 caractères)</label>
-                    <input type="password" id="password" name="password" value={formData.password} onChange={handleChange} className={inputClass} required minLength={6} />
+                    <div className="relative">
+                        <input 
+                            type={showPassword ? "text" : "password"} 
+                            id="password" 
+                            name="password" 
+                            value={formData.password} 
+                            onChange={handleChange} 
+                            className={`${inputClass} pr-10`} 
+                            required 
+                            minLength={6} 
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                            aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                        >
+                            {showPassword ? <EyeOffIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
+                        </button>
+                    </div>
                 </div>
                 
                 <hr className="my-4"/>

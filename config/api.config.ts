@@ -5,6 +5,7 @@ export const API_CONFIG = {
   TIMEOUT: 30000, // 30 secondes
   ENDPOINTS: {
     // Authentication
+    AUTH: '/auth',
     LOGIN: '/auth/login',
     LOGOUT: '/auth/logout',
     REGISTER: '/auth/register',

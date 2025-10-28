@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { HashRouter, Routes, Route, NavLink, Link, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { UserRole, Report } from './types.ts';
 import { api } from './services/api.real';
-import { LogoIcon, MenuIcon, XIcon, SpinnerIcon, PreachIcon, PrayerGroupIcon, DocumentTextIcon, BookOpenIcon, SpeakerphoneIcon } from './components/icons.tsx';
+import { LogoIcon, MenuIcon, XIcon, SpinnerIcon, PreachIcon, PrayerGroupIcon, DocumentTextIcon, BookOpenIcon, SpeakerphoneIcon, EyeIcon, EyeOffIcon } from './components/icons.tsx';
 import ReportForm from './components/ReportForm.tsx';
 import Dashboard from './components/Dashboard.tsx';
 import UsersPage from './components/UsersPage.tsx';
@@ -12,19 +12,30 @@ import RegisterPage from './components/RegisterPage.tsx';
 import TeamPage from './components/TeamPage.tsx';
 import PublicPage from './components/PublicPage.tsx';
 import CommunicationPage from './components/CommunicationPage.tsx';
+import PasswordResetRequestPage from './components/PasswordResetRequestPage.tsx';
+import PasswordResetPage from './components/PasswordResetPage.tsx';
+import AdminResetLinkPage from './components/AdminResetLinkPage.tsx';
+import CellGrowthStatsPage from './components/CellGrowthStatsPage.tsx';
 import { AuthProvider, useAuth } from './contexts/AuthContext.tsx';
 import { ToastProvider, useToast } from './contexts/ToastContext.tsx';
 
 // --- Layout Components ---
 const Navbar = () => {
     const { user, logout } = useAuth();
+    const { showToast } = useToast();
     const navigate = useNavigate();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-    const handleLogout = () => {
-        logout();
-        setIsMenuOpen(false);
-        navigate('/');
+    const handleLogout = async () => {
+        try {
+            await logout();
+            setIsMenuOpen(false);
+            showToast('Déconnexion réussie', 'success');
+            navigate('/');
+        } catch (error) {
+            console.error('Erreur lors de la déconnexion:', error);
+            showToast('Erreur lors de la déconnexion', 'error');
+        }
     };
     
     const baseLinkClass = "px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200";
@@ -43,10 +54,14 @@ const Navbar = () => {
                 <>
                   <NavLink to="/admin" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `${linkClasses} ${isActive ? activeLinkClass : inactiveLinkClass}`}>Tableau de bord</NavLink>
                   <NavLink to="/users" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `${linkClasses} ${isActive ? activeLinkClass : inactiveLinkClass}`}>Utilisateurs</NavLink>
+                  <NavLink to="/admin-reset-link" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `${linkClasses} ${isActive ? activeLinkClass : inactiveLinkClass}`}>Réinitialisation MDP</NavLink>
                 </>
               )}
               {user.role !== UserRole.CELL_LEADER && (
-                <NavLink to="/management" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `${linkClasses} ${isActive ? activeLinkClass : inactiveLinkClass}`}>Gestion</NavLink>
+                <>
+                  <NavLink to="/management" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `${linkClasses} ${isActive ? activeLinkClass : inactiveLinkClass}`}>Gestion</NavLink>
+                  <NavLink to="/cell-growth" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `${linkClasses} ${isActive ? activeLinkClass : inactiveLinkClass}`}>Évolution Cellules</NavLink>
+                </>
               )}
               {(user.role === UserRole.GROUP_PASTOR || user.role === UserRole.DISTRICT_PASTOR) && (
                 <NavLink to="/team" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `${linkClasses} ${isActive ? activeLinkClass : inactiveLinkClass}`}>Mon Équipe</NavLink>
@@ -102,6 +117,8 @@ const Footer: React.FC = () => (
 
 // --- Page Components ---
 const HomePage: React.FC = () => {
+    const { user } = useAuth();
+    
     return (
         <div className="text-center">
             <div className="bg-white p-8 sm:p-12 rounded-xl shadow-2xl flex flex-col items-center">
@@ -113,25 +130,35 @@ const HomePage: React.FC = () => {
                     Les cellules de maison, la croissance de l'Église. 
                 </p>
                 <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
-                    <Link to="/rapport" className="bg-blue-700 text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-800 transition-transform transform hover:scale-105 shadow-lg">
-                        Soumettre un Rapport
-                    </Link>
-                    <Link to="/login" className="bg-gray-700 text-white font-bold py-3 px-8 rounded-lg hover:bg-gray-800 transition-transform transform hover:scale-105 shadow-lg">
-                        Accès Administrateur
-                    </Link>
+                    {user ? (
+                        <Link to="/rapport" className="bg-blue-700 text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-800 transition-transform transform hover:scale-105 shadow-lg">
+                            Soumettre un Rapport
+                        </Link>
+                    ) : (
+                        <>
+                            <Link to="/login" className="bg-blue-700 text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-800 transition-transform transform hover:scale-105 shadow-lg">
+                                Connexion
+                            </Link>
+                            <Link to="/register" className="bg-gray-700 text-white font-bold py-3 px-8 rounded-lg hover:bg-gray-800 transition-transform transform hover:scale-105 shadow-lg">
+                                S'inscrire
+                            </Link>
+                        </>
+                    )}
                 </div>
 
-                 {/* NEW Call to action Section */}
-                <div className="mt-12 w-full">
-                    <div className="p-6 bg-blue-50 border border-blue-200 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300">
-                        <h2 className="text-2xl font-bold text-gray-700">Prêt à soumettre votre rapport ?</h2>
-                        <p className="text-gray-600 mt-2 mb-6">La soumission régulière des rapports est essentielle pour le suivi et la croissance de nos cellules. Ne tardez pas !</p>
-                        <Link to="/rapport" className="inline-flex items-center justify-center bg-blue-700 text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-800 transition-transform transform hover:scale-105 shadow-lg">
-                            <DocumentTextIcon className="h-5 w-5 mr-2" />
-                            Soumettre le rapport de cette semaine
-                        </Link>
+                 {/* Call to action Section - Only for logged in users */}
+                {user && (
+                    <div className="mt-12 w-full">
+                        <div className="p-6 bg-blue-50 border border-blue-200 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300">
+                            <h2 className="text-2xl font-bold text-gray-700">Prêt à soumettre votre rapport ?</h2>
+                            <p className="text-gray-600 mt-2 mb-6">La soumission régulière des rapports est essentielle pour le suivi et la croissance de nos cellules. Ne tardez pas !</p>
+                            <Link to="/rapport" className="inline-flex items-center justify-center bg-blue-700 text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-800 transition-transform transform hover:scale-105 shadow-lg">
+                                <DocumentTextIcon className="h-5 w-5 mr-2" />
+                                Soumettre le rapport de cette semaine
+                            </Link>
+                        </div>
                     </div>
-                </div>
+                )}
 
                 {/* Weekly Programs Section */}
                 {/* <div className="mt-16 pt-10 border-t w-full space-y-6">
@@ -197,6 +224,7 @@ const ReportPage: React.FC = () => <ReportForm />;
 const LoginPage: React.FC = () => {
     const [identifier, setIdentifier] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const { login, user } = useAuth();
     const { showToast } = useToast();
@@ -224,25 +252,9 @@ const LoginPage: React.FC = () => {
         }
     };
     
-    const handleForgotPassword = async (e: React.MouseEvent<HTMLAnchorElement>) => {
+    const handleForgotPassword = (e: React.MouseEvent<HTMLAnchorElement>) => {
         e.preventDefault();
-        if (!identifier) {
-            showToast("Veuillez d'abord saisir votre email ou numéro de téléphone.", "info");
-            return;
-        }
-        // Vérifier si c'est un email
-        const isEmail = identifier.includes('@');
-        if (!isEmail) {
-            showToast("La réinitialisation du mot de passe nécessite une adresse email.", "info");
-            return;
-        }
-        try {
-            await api.resetPassword(identifier);
-            // The local API shows an alert, so we can add a toast for better UX consistency
-            showToast("La procédure de réinitialisation a été simulée.", "success");
-        } catch (err: any) {
-            showToast(err.message || "Erreur lors de la réinitialisation.", 'error');
-        }
+        navigate('/request-password-reset');
     };
 
     return (
@@ -260,12 +272,29 @@ const LoginPage: React.FC = () => {
                         onChange={e => setIdentifier(e.target.value)} 
                         required 
                         className="mt-1 w-full p-2 border rounded-md" 
-                        placeholder="email@exemple.com ou 0123456789"
+                        placeholder=""
                     />
                 </div>
                 <div>
                     <label htmlFor="password"  className="block text-sm font-medium text-gray-700">Mot de passe</label>
-                    <input type="password" id="password" value={password} onChange={e => setPassword(e.target.value)} required className="mt-1 w-full p-2 border rounded-md" />
+                    <div className="relative">
+                        <input 
+                            type={showPassword ? "text" : "password"} 
+                            id="password" 
+                            value={password} 
+                            onChange={e => setPassword(e.target.value)} 
+                            required 
+                            className="mt-1 w-full p-2 pr-10 border rounded-md" 
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                            aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                        >
+                            {showPassword ? <EyeOffIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
+                        </button>
+                    </div>
                 </div>
                 <div className="text-right text-sm">
                     <a href="#" onClick={handleForgotPassword} className="font-medium text-blue-600 hover:text-blue-500">
@@ -342,9 +371,15 @@ function App() {
               <Routes>
                 <Route path="/" element={<HomePage />} />
                 {/* <Route path="/annonces" element={<PublicPage />} /> */}
-                <Route path="/rapport" element={<ReportPage />} />
+                <Route path="/rapport" element={
+                  <ProtectedRoute>
+                    <ReportPage />
+                  </ProtectedRoute>
+                } />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
+                <Route path="/request-password-reset" element={<PasswordResetRequestPage />} />
+                <Route path="/reset-password" element={<PasswordResetPage />} />
                 {/* <Route path="/communications" element={
                   <ProtectedRoute>
                     <CommunicationPage />
@@ -365,9 +400,19 @@ function App() {
                     <UsersPage />
                   </RoleProtectedRoute>
                 } />
+                <Route path="/admin-reset-link" element={
+                  <RoleProtectedRoute allowedRoles={[UserRole.NATIONAL_COORDINATOR]}>
+                    <AdminResetLinkPage />
+                  </RoleProtectedRoute>
+                } />
                 <Route path="/management" element={
                   <RoleProtectedRoute excludeRoles={[UserRole.CELL_LEADER]}>
                     <ManagementPage />
+                  </RoleProtectedRoute>
+                } />
+                <Route path="/cell-growth" element={
+                  <RoleProtectedRoute excludeRoles={[UserRole.CELL_LEADER]}>
+                    <CellGrowthStatsPage />
                   </RoleProtectedRoute>
                 } />
                 <Route path="/team" element={

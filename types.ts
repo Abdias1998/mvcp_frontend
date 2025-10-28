@@ -32,6 +32,7 @@ export interface Cell {
   leaderName: string;
   leaderContact?: string;
   status: CellStatus;
+  initialMembersCount?: number; // Nombre de personnes inscrites à l'ouverture de la cellule
 }
 
 export interface Report {

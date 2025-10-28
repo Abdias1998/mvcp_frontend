@@ -463,6 +463,25 @@ const CellForm: React.FC<{ cell: Partial<Cell>, onSave: (data: Omit<Cell, 'id'>,
                     title="Le numéro doit contenir 10 chiffres et commencer par 01."
                 />
             </div>
+
+            <div>
+                <label htmlFor="initialMembersCount" className={labelClass}>
+                    Nombre de personnes inscrites à l'ouverture
+                </label>
+                <input 
+                    type="number" 
+                    id="initialMembersCount" 
+                    name="initialMembersCount" 
+                    value={formData.initialMembersCount || ''} 
+                    onChange={handleChange} 
+                    className={inputClass}
+                    placeholder="Ex: 10"
+                    min="0"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                    Ce nombre servira de référence pour calculer l'évolution de la cellule
+                </p>
+            </div>
             
             <div className="flex justify-end space-x-3 pt-4">
                 <button type="button" onClick={onCancel} className="bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-300">

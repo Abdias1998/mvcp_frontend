@@ -125,9 +125,24 @@ export const api = {
     }
   },
 
-  logout: () => {
-    saveCurrentUser(null);
-    return Promise.resolve();
+  logout: async () => {
+    try {
+      // Appeler l'endpoint de déconnexion du backend
+      await httpClient.post(`${API_CONFIG.ENDPOINTS.AUTH}/logout`, {});
+      console.log('✅ Déconnexion confirmée par le serveur');
+    } catch (error) {
+      console.error('⚠️ Erreur lors de la déconnexion côté serveur:', error);
+      // On continue quand même avec la déconnexion côté client
+    } finally {
+      // Nettoyer complètement le localStorage
+      localStorage.removeItem('currentUser');
+      localStorage.removeItem('token');
+      
+      // Mettre à jour l'état de l'utilisateur
+      saveCurrentUser(null);
+      
+      console.log('✅ Déconnexion réussie - localStorage nettoyé');
+    }
   },
 
   registerPastor: async (pastorData: PastorData): Promise<{ success: boolean; message: string }> => {
@@ -184,13 +199,64 @@ export const api = {
     }
   },
 
-  resetPassword: async (email: string) => {
+  requestPasswordReset: async (requestData: {
+    name: string;
+    contact: string;
+    region: string;
+    group?: string;
+    district?: string;
+    groupPastorName?: string;
+    districtPastorName?: string;
+  }): Promise<{ success: boolean; message: string }> => {
     try {
-      await httpClient.post(API_CONFIG.ENDPOINTS.RESET_PASSWORD, { email });
-      return Promise.resolve();
-    } catch (error) {
+      console.log('🔵 REQUEST - requestPasswordReset');
+      console.log('URL:', `${API_CONFIG.ENDPOINTS.AUTH}/request-password-reset`);
+      console.log('Data:', requestData);
+      
+      // httpClient.post retourne directement les données, pas un objet avec .data
+      const response = await httpClient.post<{ success: boolean; message: string }>(
+        `${API_CONFIG.ENDPOINTS.AUTH}/request-password-reset`,
+        requestData
+      );
+      
+      console.log('✅ RESPONSE - requestPasswordReset');
+      console.log('Full response:', response);
+      
+      return response;
+    } catch (error: any) {
+      console.error('❌ ERROR - requestPasswordReset');
+      console.error('Full error:', error);
+      console.error('Error message:', error.message);
+      
+      // Extraire le message d'erreur
+      let errorMessage = 'Erreur lors de la demande de réinitialisation.';
+      if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      console.error('Final error message:', errorMessage);
+      throw new Error(errorMessage);
+    }
+  },
+
+  resetPassword: async (resetData: { token: string; newPassword: string }): Promise<{ success: boolean; message: string }> => {
+    try {
+      // httpClient.post retourne directement les données, pas un objet avec .data
+      const response = await httpClient.post<{ success: boolean; message: string }>(
+        `${API_CONFIG.ENDPOINTS.AUTH}/reset-password`,
+        resetData
+      );
+      return response;
+    } catch (error: any) {
       console.error('Reset password error:', error);
-      throw new Error('Erreur lors de la réinitialisation du mot de passe');
+      
+      // Extraire le message d'erreur
+      let errorMessage = 'Erreur lors de la réinitialisation du mot de passe.';
+      if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      throw new Error(errorMessage);
     }
   },
 
@@ -217,12 +283,15 @@ export const api = {
         end: dateRange.end,
       };
 
-      // Ajouter des filtres selon le rôle
+      // Ajouter des filtres selon le rôle (hiérarchie complète)
       if (user.role === UserRole.REGIONAL_PASTOR && user.region) {
         params.region = user.region;
-      } else if (user.role === UserRole.GROUP_PASTOR && user.group) {
+      } else if (user.role === UserRole.GROUP_PASTOR && user.region && user.group) {
+        params.region = user.region;
         params.group = user.group;
-      } else if (user.role === UserRole.DISTRICT_PASTOR && user.district) {
+      } else if (user.role === UserRole.DISTRICT_PASTOR && user.region && user.group && user.district) {
+        params.region = user.region;
+        params.group = user.group;
         params.district = user.district;
       }
 
