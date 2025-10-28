@@ -41,16 +41,16 @@ const initialDraft: ReportDraft = {
     cellCategory: '',
     leaderName: '',
     leaderContact: '',
-    registeredMen: 0,
-    registeredWomen: 0,
-    registeredChildren: 0,
-    attendees: 0,
+    registeredMen: '' as any,
+    registeredWomen: '' as any,
+    registeredChildren: '' as any,
+    attendees: '' as any,
     invitedPeople: [],
     visitSchedule: '',
     visitsMade: [],
-    bibleStudy: 0,
-    miracleHour: 0,
-    sundayServiceAttendance: 0,
+    bibleStudy: '' as any,
+    miracleHour: '' as any,
+    sundayServiceAttendance: '' as any,
     evangelismOuting: '',
     poignantTestimony: '',
     prayerRequests: [],
@@ -109,25 +109,8 @@ const ReportForm: React.FC = () => {
         fetchHierarchyData();
     }, [showToast, user]);
 
-    // Pré-remplir les champs du formulaire avec les informations de l'utilisateur connecté
-    useEffect(() => {
-        if (user && user.cellName && user.cellCategory) {
-            // Ne mettre à jour que si les champs ne sont pas déjà remplis
-            setFormData(prev => {
-                // Éviter la mise à jour si les valeurs sont déjà définies
-                if (prev.cellCategory && prev.leaderName && prev.leaderContact) {
-                    return prev;
-                }
-                return {
-                    ...prev,
-                    cellCategory: user.cellCategory || prev.cellCategory,
-                    leaderName: user.name || prev.leaderName,
-                    leaderContact: user.contact || prev.leaderContact,
-                };
-            });
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [user]);
+    // Pas de pré-remplissage automatique - les utilisateurs choisissent tout manuellement
+    // useEffect désactivé pour permettre une saisie libre
 
     const calculatedStats = useMemo(() => {
         const registeredMembers = Number(formData.registeredMen) + Number(formData.registeredWomen) + Number(formData.registeredChildren);
@@ -273,8 +256,16 @@ const ReportForm: React.FC = () => {
         
         setStatus('loading');
         
+        // Convertir les champs numériques en nombres
         const reportToSubmit: Omit<Report, 'id' | 'submittedAt'> = {
             ...formData,
+            registeredMen: Number(formData.registeredMen) || 0,
+            registeredWomen: Number(formData.registeredWomen) || 0,
+            registeredChildren: Number(formData.registeredChildren) || 0,
+            attendees: Number(formData.attendees) || 0,
+            bibleStudy: Number(formData.bibleStudy) || 0,
+            miracleHour: Number(formData.miracleHour) || 0,
+            sundayServiceAttendance: Number(formData.sundayServiceAttendance) || 0,
             absentees: calculatedStats.absentees,
             totalPresent: calculatedStats.totalPresent,
         };
@@ -357,7 +348,6 @@ const ReportForm: React.FC = () => {
                         onChange={handleChange} 
                         className={inputClass} 
                         required
-                        disabled={user?.cellCategory ? true : false}
                     >
                          <option value="">-- Sélectionner --</option>
                          {CELL_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
@@ -365,7 +355,7 @@ const ReportForm: React.FC = () => {
                 </div>
             </div>
              <div className="p-4 bg-gray-50 rounded-lg border animate-fade-in">
-                <h4 className="font-semibold text-gray-800">Informations du Responsable (pré-remplies)</h4>
+                <h4 className="font-semibold text-gray-800">Informations du Responsable</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
                     <div>
                        <label htmlFor="leaderName" className={labelClass}>Nom du Responsable</label>
@@ -376,8 +366,7 @@ const ReportForm: React.FC = () => {
                            value={formData.leaderName} 
                            onChange={handleChange} 
                            className={inputClass} 
-                           required 
-                           disabled={user?.cellName ? true : false}
+                           required
                        />
                     </div>
                     <div>
@@ -392,7 +381,6 @@ const ReportForm: React.FC = () => {
                            placeholder="Ex: 0123456789"
                            pattern="01[0-9]{8}"
                            title="Le numéro doit contenir 10 chiffres et commencer par 01."
-                           disabled={user?.contact ? true : false}
                        />
                     </div>
                 </div>
