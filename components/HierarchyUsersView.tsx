@@ -101,6 +101,8 @@ const HierarchyUsersView: React.FC<HierarchyUsersViewProps> = ({ user }) => {
                     </h3>
                 </div>
                 <p className="text-gray-600 text-sm mb-4">
+                    {user.role === UserRole.REGIONAL_PASTOR && 
+                        'Vous voyez tous les pasteurs de groupe, pasteurs de district et responsables de cellule de votre région.'}
                     {user.role === UserRole.GROUP_PASTOR && 
                         'Vous voyez tous les pasteurs de district et responsables de cellule de votre groupe.'}
                     {user.role === UserRole.DISTRICT_PASTOR && 

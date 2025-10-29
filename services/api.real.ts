@@ -293,6 +293,13 @@ export const api = {
         params.region = user.region;
         params.group = user.group;
         params.district = user.district;
+      } else if (user.role === UserRole.CELL_LEADER && user.region && user.group && user.district && user.cellName && user.cellCategory) {
+        // Le responsable de cellule ne voit que les rapports de sa propre cellule
+        params.region = user.region;
+        params.group = user.group;
+        params.district = user.district;
+        params.cellName = user.cellName;
+        params.cellCategory = user.cellCategory;
       }
 
       console.log('📊 Récupération des rapports avec params:', params);
@@ -408,6 +415,13 @@ export const api = {
         params.region = user.region;
         params.group = user.group;
         params.district = user.district;
+      } else if (user.role === UserRole.CELL_LEADER && user.region && user.group && user.district && user.cellName && user.cellCategory) {
+        // Le responsable de cellule ne voit que sa propre cellule
+        params.region = user.region;
+        params.group = user.group;
+        params.district = user.district;
+        params.cellName = user.cellName;
+        params.cellCategory = user.cellCategory;
       }
 
       // Le backend retourne directement un tableau de cellules

@@ -58,12 +58,12 @@ const Navbar = () => {
                 </>
               )}
               {user.role !== UserRole.CELL_LEADER && (
-                <>
-                  <NavLink to="/management" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `${linkClasses} ${isActive ? activeLinkClass : inactiveLinkClass}`}>Gestion</NavLink>
-                  <NavLink to="/cell-growth" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `${linkClasses} ${isActive ? activeLinkClass : inactiveLinkClass}`}>Évolution Cellules</NavLink>
-                </>
+                <NavLink to="/management" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `${linkClasses} ${isActive ? activeLinkClass : inactiveLinkClass}`}>Gestion</NavLink>
               )}
-              {(user.role === UserRole.GROUP_PASTOR || user.role === UserRole.DISTRICT_PASTOR) && (
+              {user && (
+                <NavLink to="/cell-growth" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `${linkClasses} ${isActive ? activeLinkClass : inactiveLinkClass}`}>Évolution Cellules</NavLink>
+              )}
+              {(user.role === UserRole.REGIONAL_PASTOR || user.role === UserRole.GROUP_PASTOR || user.role === UserRole.DISTRICT_PASTOR) && (
                 <NavLink to="/team" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `${linkClasses} ${isActive ? activeLinkClass : inactiveLinkClass}`}>Mon Équipe</NavLink>
               )}
             </>
@@ -455,9 +455,9 @@ function App() {
                   </RoleProtectedRoute>
                 } />
                 <Route path="/cell-growth" element={
-                  <RoleProtectedRoute excludeRoles={[UserRole.CELL_LEADER]}>
+                  <ProtectedRoute>
                     <CellGrowthStatsPage />
-                  </RoleProtectedRoute>
+                  </ProtectedRoute>
                 } />
                 <Route path="/team" element={
                   <ProtectedRoute>
