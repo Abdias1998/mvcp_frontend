@@ -43,10 +43,8 @@ export function calculateCellGrowth(
   }
 
   // Nombre actuel = Total sur liste du dernier rapport
-  // registeredTotal = registeredMen + registeredWomen + registeredChildren
-  const currentCount = (latestReport.registeredMen || 0) + 
-                       (latestReport.registeredWomen || 0) + 
-                       (latestReport.registeredChildren || 0);
+  // Utilise initialMembersCount qui représente le nombre total de membres inscrits
+  const currentCount = latestReport.initialMembersCount || 0;
   
   // Calculer le pourcentage d'évolution
   const growthPercentage = ((currentCount - initialCount) / initialCount) * 100;
