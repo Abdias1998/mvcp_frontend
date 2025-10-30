@@ -8,6 +8,54 @@ import ConfirmationModal from './ConfirmationModal.tsx';
 import Pagination from './Pagination.tsx';
 import { usePagination } from '../hooks/usePagination.ts';
 
+// Composant pour la table paginée des districts
+const PaginatedDistrictsTable: React.FC<{
+    districts: District[];
+    handleEdit: (district: District) => void;
+    handleDeleteRequest: (id: string, name: string) => void;
+}> = ({ districts, handleEdit, handleDeleteRequest }) => {
+    const pagination = usePagination<District>({ items: districts, itemsPerPage: 10 });
+    
+    if (districts.length === 0) {
+        return <p className="text-center text-gray-500 py-6">Aucun district trouvé.</p>;
+    }
+    
+    return (
+        <>
+            <table className="w-full text-sm text-left text-gray-600">
+                <thead className="text-xs text-gray-700 uppercase bg-gray-50">
+                    <tr>
+                        <th className="px-6 py-3">Nom du District</th>
+                        <th className="px-6 py-3">Groupe</th>
+                        <th className="px-6 py-3">Région</th>
+                        <th className="px-6 py-3 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {pagination.paginatedItems.map(d => (
+                        <tr key={d.id} className="bg-white border-b hover:bg-gray-50">
+                            <td className="px-6 py-4 font-medium text-gray-900">{d.name}</td>
+                            <td className="px-6 py-4">{d.group}</td>
+                            <td className="px-6 py-4">{d.region}</td>
+                            <td className="px-6 py-4 flex justify-end items-center space-x-3">
+                                <button onClick={() => handleEdit(d)} className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded-full" title="Modifier"><PencilIcon className="h-5 w-5"/></button>
+                                <button onClick={() => handleDeleteRequest(d.id, d.name)} className="p-1 text-red-600 hover:text-red-800 hover:bg-red-100 rounded-full" title="Supprimer"><TrashIcon className="h-5 w-5"/></button>
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+            <Pagination
+                currentPage={pagination.currentPage}
+                totalPages={pagination.totalPages}
+                onPageChange={pagination.goToPage}
+                itemsPerPage={pagination.itemsPerPage}
+                totalItems={pagination.totalItems}
+            />
+        </>
+    );
+};
+
 const Modal: React.FC<{ isOpen: boolean, onClose: () => void, title: string, children: React.ReactNode }> = ({ isOpen, onClose, title, children }) => {
     if (!isOpen) return null;
     return (
@@ -206,49 +254,11 @@ const DistrictManagement: React.FC = () => {
                  </button>
             </div>
             
-            <div className="overflow-x-auto">
-                <table className="w-full text-sm text-left text-gray-600">
-                     <thead className="text-xs text-gray-700 uppercase bg-gray-50">
-                        <tr>
-                            <th className="px-6 py-3">District / Localité</th>
-                            <th className="px-6 py-3">Groupe / District Parent</th>
-                            <th className="px-6 py-3">Région</th>
-                            <th className="px-6 py-3 text-right">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {(() => {
-                            const pagination = usePagination<District>({ items: filteredDistricts, itemsPerPage: 10 });
-                            return pagination.paginatedItems.map(d => (
-                                <tr key={d.id} className="bg-white border-b hover:bg-gray-50">
-                                    <td className="px-6 py-4 font-medium text-gray-900">{d.name}</td>
-                                    <td className="px-6 py-4">{d.group}</td>
-                                    <td className="px-6 py-4">{d.region}</td>
-                                    <td className="px-6 py-4 flex justify-end items-center space-x-3">
-                                        <button onClick={() => handleEdit(d)} className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded-full" title="Modifier"><PencilIcon className="h-5 w-5"/></button>
-                                        <button onClick={() => handleDeleteRequest(d.id, d.name)} className="p-1 text-red-600 hover:text-red-800 hover:bg-red-100 rounded-full" title="Supprimer"><TrashIcon className="h-5 w-5"/></button>
-                                    </td>
-                                </tr>
-                            ));
-                        })()}
-                    </tbody>
-                </table>
-                {filteredDistricts.length === 0 && (
-                    <p className="text-center text-gray-500 py-6">Aucun district trouvé.</p>
-                )}
-                {filteredDistricts.length > 0 && (() => {
-                    const pagination = usePagination<District>({ items: filteredDistricts, itemsPerPage: 10 });
-                    return (
-                        <Pagination
-                            currentPage={pagination.currentPage}
-                            totalPages={pagination.totalPages}
-                            onPageChange={pagination.goToPage}
-                            itemsPerPage={pagination.itemsPerPage}
-                            totalItems={pagination.totalItems}
-                        />
-                    );
-                })()}
-            </div>
+            <PaginatedDistrictsTable
+                districts={filteredDistricts}
+                handleEdit={handleEdit}
+                handleDeleteRequest={handleDeleteRequest}
+            />
              <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingDistrict?.id ? "Modifier le District" : "Ajouter un District"}>
                 {editingDistrict && <DistrictForm district={editingDistrict} onSave={handleSave} onCancel={() => setIsModalOpen(false)} />}
             </Modal>

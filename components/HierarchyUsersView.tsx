@@ -10,6 +10,98 @@ interface HierarchyUsersViewProps {
     user: User;
 }
 
+// Composant pour afficher un groupe d'utilisateurs paginé
+const PaginatedRoleUsersTable: React.FC<{
+    role: UserRole;
+    users: User[];
+    getRoleLabel: (role: UserRole) => string;
+    getRoleBadgeColor: (role: UserRole) => string;
+}> = ({ role, users, getRoleLabel, getRoleBadgeColor }) => {
+    const pagination = usePagination<User>({ items: users, itemsPerPage: 10 });
+    
+    return (
+        <div className="border rounded-lg p-4">
+            <h4 className="font-semibold text-gray-700 mb-3 flex items-center">
+                <span className={`px-3 py-1 rounded-full text-sm ${getRoleBadgeColor(role)}`}>
+                    {getRoleLabel(role)}
+                </span>
+                <span className="ml-2 text-gray-500 text-sm">({users.length})</span>
+            </h4>
+            
+            <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                    <thead className="bg-gray-50">
+                        <tr>
+                            <th className="p-2 text-left">Nom</th>
+                            <th className="p-2 text-left">Contact</th>
+                            {role === UserRole.CELL_LEADER && (
+                                <>
+                                    <th className="p-2 text-left">Cellule</th>
+                                    <th className="p-2 text-left">Identifiant</th>
+                                    <th className="p-2 text-left">Membres inscrits</th>
+                                </>
+                            )}
+                            {role !== UserRole.CELL_LEADER && (
+                                <>
+                                    <th className="p-2 text-left">Région</th>
+                                    <th className="p-2 text-left">Groupe</th>
+                                    <th className="p-2 text-left">District</th>
+                                </>
+                            )}
+                            <th className="p-2 text-left">Statut</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {pagination.paginatedItems.map((u) => (
+                            <tr key={u.uid} className="border-t hover:bg-gray-50">
+                                <td className="p-2 font-medium">{u.name}</td>
+                                <td className="p-2">{u.contact || 'N/A'}</td>
+                                {role === UserRole.CELL_LEADER ? (
+                                    <>
+                                        <td className="p-2">{u.cellName || 'N/A'}</td>
+                                        <td className="p-2">
+                                            <span className="font-mono bg-gray-100 px-2 py-1 rounded">
+                                                {u.identifier || 'N/A'}
+                                            </span>
+                                        </td>
+                                        <td className="p-2 text-center">
+                                            <span className="font-semibold text-blue-600">
+                                                {(u as any).initialMembersCount || 0}
+                                            </span>
+                                        </td>
+                                    </>
+                                ) : (
+                                    <>
+                                        <td className="p-2">{u.region || 'N/A'}</td>
+                                        <td className="p-2">{u.group || 'N/A'}</td>
+                                        <td className="p-2">{u.district || 'N/A'}</td>
+                                    </>
+                                )}
+                                <td className="p-2">
+                                    <span className={`px-2 py-1 rounded-full text-xs ${
+                                        u.status === 'approved' 
+                                            ? 'bg-green-100 text-green-800' 
+                                            : 'bg-yellow-100 text-yellow-800'
+                                    }`}>
+                                        {u.status === 'approved' ? 'Approuvé' : 'En attente'}
+                                    </span>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+            <Pagination
+                currentPage={pagination.currentPage}
+                totalPages={pagination.totalPages}
+                onPageChange={pagination.goToPage}
+                itemsPerPage={pagination.itemsPerPage}
+                totalItems={pagination.totalItems}
+            />
+        </div>
+    );
+};
+
 const HierarchyUsersView: React.FC<HierarchyUsersViewProps> = ({ user }) => {
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
@@ -119,90 +211,15 @@ const HierarchyUsersView: React.FC<HierarchyUsersViewProps> = ({ user }) => {
                 </p>
 
                 <div className="space-y-4">
-                    {(Object.entries(groupedUsers) as [UserRole, User[]][]).map(([role, roleUsers]) => {
-                        const pagination = usePagination<User>({ items: roleUsers, itemsPerPage: 10 });
-                        return (
-                            <div key={role} className="border rounded-lg p-4">
-                                <h4 className="font-semibold text-gray-700 mb-3 flex items-center">
-                                    <span className={`px-3 py-1 rounded-full text-sm ${getRoleBadgeColor(role)}`}>
-                                        {getRoleLabel(role)}
-                                    </span>
-                                    <span className="ml-2 text-gray-500 text-sm">({roleUsers.length})</span>
-                                </h4>
-                                
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-sm">
-                                        <thead className="bg-gray-50">
-                                            <tr>
-                                                <th className="p-2 text-left">Nom</th>
-                                                <th className="p-2 text-left">Contact</th>
-                                                {role === UserRole.CELL_LEADER && (
-                                                    <>
-                                                        <th className="p-2 text-left">Cellule</th>
-                                                        <th className="p-2 text-left">Identifiant</th>
-                                                        <th className="p-2 text-left">Membres inscrits</th>
-                                                    </>
-                                                )}
-                                                {role !== UserRole.CELL_LEADER && (
-                                                    <>
-                                                        <th className="p-2 text-left">Région</th>
-                                                        <th className="p-2 text-left">Groupe</th>
-                                                        <th className="p-2 text-left">District</th>
-                                                    </>
-                                                )}
-                                                <th className="p-2 text-left">Statut</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {pagination.paginatedItems.map((u) => (
-                                            <tr key={u.uid} className="border-t hover:bg-gray-50">
-                                                <td className="p-2 font-medium">{u.name}</td>
-                                                <td className="p-2">{u.contact || 'N/A'}</td>
-                                                {role === UserRole.CELL_LEADER ? (
-                                                    <>
-                                                        <td className="p-2">{u.cellName || 'N/A'}</td>
-                                                        <td className="p-2">
-                                                            <span className="font-mono bg-gray-100 px-2 py-1 rounded">
-                                                                {u.identifier || 'N/A'}
-                                                            </span>
-                                                        </td>
-                                                        <td className="p-2 text-center">
-                                                            <span className="font-semibold text-blue-600">
-                                                                {(u as any).initialMembersCount || 0}
-                                                            </span>
-                                                        </td>
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <td className="p-2">{u.region || 'N/A'}</td>
-                                                        <td className="p-2">{u.group || 'N/A'}</td>
-                                                        <td className="p-2">{u.district || 'N/A'}</td>
-                                                    </>
-                                                )}
-                                                <td className="p-2">
-                                                    <span className={`px-2 py-1 rounded-full text-xs ${
-                                                        u.status === 'approved' 
-                                                            ? 'bg-green-100 text-green-800' 
-                                                            : 'bg-yellow-100 text-yellow-800'
-                                                    }`}>
-                                                        {u.status === 'approved' ? 'Approuvé' : 'En attente'}
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                            <Pagination
-                                currentPage={pagination.currentPage}
-                                totalPages={pagination.totalPages}
-                                onPageChange={pagination.goToPage}
-                                itemsPerPage={pagination.itemsPerPage}
-                                totalItems={pagination.totalItems}
-                            />
-                        </div>
-                        );
-                    })}
+                    {(Object.entries(groupedUsers) as [UserRole, User[]][]).map(([role, roleUsers]) => (
+                        <PaginatedRoleUsersTable
+                            key={role}
+                            role={role}
+                            users={roleUsers}
+                            getRoleLabel={getRoleLabel}
+                            getRoleBadgeColor={getRoleBadgeColor}
+                        />
+                    ))}
                 </div>
             </div>
 

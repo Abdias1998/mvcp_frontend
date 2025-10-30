@@ -186,6 +186,60 @@ const EventForm: React.FC<{ event: Partial<Event>, onSave: (data: Omit<Event, 'i
     );
 };
 
+// Composant pour la table paginée des événements
+const PaginatedEventsTable: React.FC<{
+    events: Event[];
+    handleEdit: (event: Event) => void;
+    handleDeleteRequest: (id: string, title: string) => void;
+}> = ({ events, handleEdit, handleDeleteRequest }) => {
+    const pagination = usePagination<Event>({ items: events, itemsPerPage: 10 });
+    
+    if (events.length === 0) {
+        return <p className="text-center text-gray-500 py-6">Aucun évènement trouvé.</p>;
+    }
+    
+    return (
+        <>
+            <table className="w-full text-sm text-left text-gray-600">
+                <thead className="text-xs text-gray-700 uppercase bg-gray-50">
+                    <tr>
+                        <th className="px-6 py-3">Titre</th>
+                        <th className="px-6 py-3">Date</th>
+                        <th className="px-6 py-3">Lieu</th>
+                        <th className="px-6 py-3">Statut</th>
+                        <th className="px-6 py-3 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {pagination.paginatedItems.map(e => (
+                        <tr key={e.id} className="bg-white border-b hover:bg-gray-50">
+                            <td className="px-6 py-4 font-medium text-gray-900">{e.title}</td>
+                            <td className="px-6 py-4">{new Date(e.date).toLocaleDateString('fr-FR')}</td>
+                            <td className="px-6 py-4">{e.location}</td>
+                            <td className="px-6 py-4">
+                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${e.status === 'published' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                                    {e.status === 'published' ? 'Publié' : 'Brouillon'}
+                                </span>
+                            </td>
+                            <td className="px-6 py-4 flex justify-end items-center space-x-3">
+                                <button onClick={() => handleEdit(e)} className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded-full" title="Modifier"><PencilIcon className="h-5 w-5"/></button>
+                                <button onClick={() => handleDeleteRequest(e.id, e.title)} className="p-1 text-red-600 hover:text-red-800 hover:bg-red-100 rounded-full" title="Supprimer"><TrashIcon className="h-5 w-5"/></button>
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+            <Pagination
+                currentPage={pagination.currentPage}
+                totalPages={pagination.totalPages}
+                onPageChange={pagination.goToPage}
+                itemsPerPage={pagination.itemsPerPage}
+                totalItems={pagination.totalItems}
+            />
+        </>
+    );
+};
+
 // FIX: Add main EventManagement component and export it as default.
 // Main Management Component
 const EventManagement: React.FC = () => {
@@ -293,60 +347,12 @@ const EventManagement: React.FC = () => {
             </div>
             
             <div className="overflow-x-auto">
-                <table className="w-full text-sm text-left text-gray-600">
-                     <thead className="text-xs text-gray-700 uppercase bg-gray-50">
-                        <tr>
-                            <th className="px-6 py-3">Titre</th>
-                            <th className="px-6 py-3">Date</th>
-                            <th className="px-6 py-3">Lieu</th>
-                            <th className="px-6 py-3">Statut</th>
-                            <th className="px-6 py-3 text-right">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {(() => {
-                            const pagination = usePagination<Event>({ items: filteredEvents, itemsPerPage: 10 });
-                            return (
-                                <>
-                                    {pagination.paginatedItems.map(e => (
-                                        <tr key={e.id} className="bg-white border-b hover:bg-gray-50">
-                                            <td className="px-6 py-4 font-medium text-gray-900">{e.title}</td>
-                                            <td className="px-6 py-4">{new Date(e.date).toLocaleDateString('fr-FR')}</td>
-                                            <td className="px-6 py-4">{e.location}</td>
-                                            <td className="px-6 py-4">
-                                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${e.status === 'published' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                                                    {e.status === 'published' ? 'Publié' : 'Brouillon'}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4 flex justify-end items-center space-x-3">
-                                                <button onClick={() => handleEdit(e)} className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded-full" title="Modifier"><PencilIcon className="h-5 w-5"/></button>
-                                                <button onClick={() => handleDeleteRequest(e.id, e.title)} className="p-1 text-red-600 hover:text-red-800 hover:bg-red-100 rounded-full" title="Supprimer"><TrashIcon className="h-5 w-5"/></button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                    {filteredEvents.length === 0 && (
-                                        <tr>
-                                            <td colSpan={5} className="text-center text-gray-500 py-6">Aucun évènement trouvé.</td>
-                                        </tr>
-                                    )}
-                                </>
-                            );
-                        })()}
-                    </tbody>
-                </table>
+                <PaginatedEventsTable
+                    events={filteredEvents}
+                    handleEdit={handleEdit}
+                    handleDeleteRequest={handleDeleteRequest}
+                />
             </div>
-            {filteredEvents.length > 0 && (() => {
-                const pagination = usePagination<Event>({ items: filteredEvents, itemsPerPage: 10 });
-                return (
-                    <Pagination
-                        currentPage={pagination.currentPage}
-                        totalPages={pagination.totalPages}
-                        onPageChange={pagination.goToPage}
-                        itemsPerPage={pagination.itemsPerPage}
-                        totalItems={pagination.totalItems}
-                    />
-                );
-            })()}
              <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingEvent?.id ? "Modifier l'Évènement" : "Ajouter un Évènement"}>
                 {editingEvent && <EventForm event={editingEvent} onSave={handleSave} onCancel={() => setIsModalOpen(false)} />}
             </Modal>
