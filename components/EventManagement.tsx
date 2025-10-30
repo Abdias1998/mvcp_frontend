@@ -4,6 +4,8 @@ import { api } from '../services/api.real';
 import { SpinnerIcon, PencilIcon, TrashIcon, PlusCircleIcon } from './icons.tsx';
 import { useToast } from '../contexts/ToastContext.tsx';
 import ConfirmationModal from './ConfirmationModal.tsx';
+import Pagination from './Pagination.tsx';
+import { usePagination } from '../hooks/usePagination.ts';
 
 // Reusable Modal Component
 const Modal: React.FC<{ isOpen: boolean, onClose: () => void, title: string, children: React.ReactNode }> = ({ isOpen, onClose, title, children }) => {
@@ -302,28 +304,49 @@ const EventManagement: React.FC = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {filteredEvents.map(e => (
-                             <tr key={e.id} className="bg-white border-b hover:bg-gray-50">
-                                <td className="px-6 py-4 font-medium text-gray-900">{e.title}</td>
-                                <td className="px-6 py-4">{new Date(e.date).toLocaleDateString('fr-FR')}</td>
-                                <td className="px-6 py-4">{e.location}</td>
-                                <td className="px-6 py-4">
-                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${e.status === 'published' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                                        {e.status === 'published' ? 'Publié' : 'Brouillon'}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4 flex justify-end items-center space-x-3">
-                                    <button onClick={() => handleEdit(e)} className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded-full" title="Modifier"><PencilIcon className="h-5 w-5"/></button>
-                                    <button onClick={() => handleDeleteRequest(e.id, e.title)} className="p-1 text-red-600 hover:text-red-800 hover:bg-red-100 rounded-full" title="Supprimer"><TrashIcon className="h-5 w-5"/></button>
-                                </td>
-                            </tr>
-                        ))}
+                        {(() => {
+                            const pagination = usePagination<Event>({ items: filteredEvents, itemsPerPage: 10 });
+                            return (
+                                <>
+                                    {pagination.paginatedItems.map(e => (
+                                        <tr key={e.id} className="bg-white border-b hover:bg-gray-50">
+                                            <td className="px-6 py-4 font-medium text-gray-900">{e.title}</td>
+                                            <td className="px-6 py-4">{new Date(e.date).toLocaleDateString('fr-FR')}</td>
+                                            <td className="px-6 py-4">{e.location}</td>
+                                            <td className="px-6 py-4">
+                                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${e.status === 'published' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                                                    {e.status === 'published' ? 'Publié' : 'Brouillon'}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 flex justify-end items-center space-x-3">
+                                                <button onClick={() => handleEdit(e)} className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded-full" title="Modifier"><PencilIcon className="h-5 w-5"/></button>
+                                                <button onClick={() => handleDeleteRequest(e.id, e.title)} className="p-1 text-red-600 hover:text-red-800 hover:bg-red-100 rounded-full" title="Supprimer"><TrashIcon className="h-5 w-5"/></button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {filteredEvents.length === 0 && (
+                                        <tr>
+                                            <td colSpan={5} className="text-center text-gray-500 py-6">Aucun évènement trouvé.</td>
+                                        </tr>
+                                    )}
+                                </>
+                            );
+                        })()}
                     </tbody>
                 </table>
-                 {filteredEvents.length === 0 && (
-                    <p className="text-center text-gray-500 py-6">Aucun évènement trouvé.</p>
-                )}
             </div>
+            {filteredEvents.length > 0 && (() => {
+                const pagination = usePagination<Event>({ items: filteredEvents, itemsPerPage: 10 });
+                return (
+                    <Pagination
+                        currentPage={pagination.currentPage}
+                        totalPages={pagination.totalPages}
+                        onPageChange={pagination.goToPage}
+                        itemsPerPage={pagination.itemsPerPage}
+                        totalItems={pagination.totalItems}
+                    />
+                );
+            })()}
              <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingEvent?.id ? "Modifier l'Évènement" : "Ajouter un Évènement"}>
                 {editingEvent && <EventForm event={editingEvent} onSave={handleSave} onCancel={() => setIsModalOpen(false)} />}
             </Modal>

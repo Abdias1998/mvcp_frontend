@@ -49,10 +49,8 @@ export interface Report {
   leaderName: string;
   leaderContact: string;
   
-  // New demographic fields for registered members
-  registeredMen: number;
-  registeredWomen: number;
-  registeredChildren: number;
+  // Total registered members count (from cell's initialMembersCount)
+  initialMembersCount: number;
   
   attendees: number; // Total number of attendees (from registered members)
   absentees: number; // calculated: (registered total) - attendees

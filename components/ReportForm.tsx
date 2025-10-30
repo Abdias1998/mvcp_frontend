@@ -41,9 +41,7 @@ const initialDraft: ReportDraft = {
     cellCategory: '',
     leaderName: '',
     leaderContact: '',
-    registeredMen: '' as any,
-    registeredWomen: '' as any,
-    registeredChildren: '' as any,
+    initialMembersCount: 0,
     attendees: '' as any,
     invitedPeople: [],
     visitSchedule: '',
@@ -109,11 +107,31 @@ const ReportForm: React.FC = () => {
         fetchHierarchyData();
     }, [showToast, user]);
 
-    // Pas de pré-remplissage automatique - les utilisateurs choisissent tout manuellement
-    // useEffect désactivé pour permettre une saisie libre
+    // Pré-remplir automatiquement les champs avec les informations de l'utilisateur connecté
+    useEffect(() => {
+        if (user) {
+            setFormData(prev => ({
+                ...prev,
+                region: user.region || prev.region,
+                group: user.group || prev.group,
+                district: user.district || prev.district,
+                cellName: user.cellName || prev.cellName,
+                cellCategory: user.cellCategory || prev.cellCategory,
+                leaderName: user.name || prev.leaderName,
+                leaderContact: user.contact || prev.leaderContact,
+                initialMembersCount: user.cellName ? 
+                    (allCells.find(c => 
+                        c.region === user.region && 
+                        c.group === user.group && 
+                        c.district === user.district && 
+                        c.cellName === user.cellName
+                    )?.initialMembersCount || 0) : prev.initialMembersCount,
+            }));
+        }
+    }, [user, allCells]);
 
     const calculatedStats = useMemo(() => {
-        const registeredMembers = Number(formData.registeredMen) + Number(formData.registeredWomen) + Number(formData.registeredChildren);
+        const registeredMembers = Number(formData.initialMembersCount) || 0;
         const absentees = Math.max(0, registeredMembers - Number(formData.attendees));
         const totalPresent = Number(formData.attendees) + formData.invitedPeople.length;
         return { registeredMembers, absentees, totalPresent };
@@ -178,6 +196,7 @@ const ReportForm: React.FC = () => {
             cellCategory: selectedCell?.cellCategory || '',
             leaderName: selectedCell?.leaderName || '',
             leaderContact: selectedCell?.leaderContact || '',
+            initialMembersCount: selectedCell?.initialMembersCount || 0,
         }));
     };
     
@@ -227,12 +246,9 @@ const ReportForm: React.FC = () => {
         // }
       }
       if (stepToValidate === 2) {
-        const registered = calculatedStats.registeredMembers;
-        if (registered < Number(formData.attendees)) {
-            showToast("Le nombre de présents ne peut être supérieur au nombre de membres sur la liste.", 'error');
-            if (redirectOnError) setStep(2);
-            return false;
-        }
+        // Pas de validation restrictive sur le nombre de présents
+        // Une cellule peut grandir et avoir plus de présents que le nombre initial de membres inscrits
+        // grâce aux invités qui deviennent membres ou aux nouveaux membres
       }
       return true;
     }
@@ -259,9 +275,7 @@ const ReportForm: React.FC = () => {
         // Convertir les champs numériques en nombres
         const reportToSubmit: Omit<Report, 'id' | 'submittedAt'> = {
             ...formData,
-            registeredMen: Number(formData.registeredMen) || 0,
-            registeredWomen: Number(formData.registeredWomen) || 0,
-            registeredChildren: Number(formData.registeredChildren) || 0,
+            initialMembersCount: Number(formData.initialMembersCount) || 0,
             attendees: Number(formData.attendees) || 0,
             bibleStudy: Number(formData.bibleStudy) || 0,
             miracleHour: Number(formData.miracleHour) || 0,
@@ -293,6 +307,15 @@ const ReportForm: React.FC = () => {
 
     const renderIdentificationStep = () => (
         <div className="space-y-6">
+            {user?.cellName && (
+                <div className="p-4 bg-green-50 border border-green-200 rounded-md">
+                    <p className="text-sm text-green-800">
+                        ✅ <strong>Informations pré-remplies automatiquement</strong>
+                        <br />
+                        <span className="text-xs text-green-600">Les champs ci-dessous ont été remplis avec vos informations de profil.</span>
+                    </p>
+                </div>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                     <label htmlFor="cellDate" className={labelClass}>📅 Date de la cellule</label>
@@ -300,21 +323,21 @@ const ReportForm: React.FC = () => {
                 </div>
                  <div>
                     <label htmlFor="region" className={labelClass}>🌍 Région</label>
-                    <select name="region" id="region" value={formData.region} onChange={handleChange} className={inputClass} required>
+                    <select name="region" id="region" value={formData.region} onChange={handleChange} className={inputClass} required disabled={user?.region ? true : false}>
                         <option value="">-- Sélectionner --</option>
                         {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
                     </select>
                 </div>
                 <div>
                     <label htmlFor="group" className={labelClass}>{groupLabel}</label>
-                    <select name="group" id="group" value={formData.group} onChange={handleChange} className={inputClass} required disabled={!formData.region}>
+                    <select name="group" id="group" value={formData.group} onChange={handleChange} className={inputClass} required disabled={user?.group ? true : !formData.region}>
                         <option value="">-- Sélectionner un {groupLabel.toLowerCase()} --</option>
                         {groupsInRegion.map(g => <option key={g} value={g}>{g}</option>)}
                     </select>
                 </div>
                 <div>
                     <label htmlFor="district" className={labelClass}>{districtLabel}</label>
-                    <select name="district" id="district" value={formData.district} onChange={handleChange} className={inputClass} required disabled={!formData.group}>
+                    <select name="district" id="district" value={formData.district} onChange={handleChange} className={inputClass} required disabled={user?.district ? true : !formData.group}>
                          <option value="">-- Sélectionner un {districtLabel.toLowerCase()} --</option>
                          {districtsInGroup.map(d => <option key={d} value={d}>{d}</option>)}
                     </select>
@@ -348,6 +371,7 @@ const ReportForm: React.FC = () => {
                         onChange={handleChange} 
                         className={inputClass} 
                         required
+                        disabled={user?.cellCategory ? true : false}
                     >
                          <option value="">-- Sélectionner --</option>
                          {CELL_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
@@ -367,6 +391,7 @@ const ReportForm: React.FC = () => {
                            onChange={handleChange} 
                            className={inputClass} 
                            required
+                           disabled={user?.name ? true : false}
                        />
                     </div>
                     <div>
@@ -381,6 +406,7 @@ const ReportForm: React.FC = () => {
                            placeholder="Ex: 0123456789"
                            pattern="01[0-9]{8}"
                            title="Le numéro doit contenir 10 chiffres et commencer par 01."
+                           disabled={user?.contact ? true : false}
                        />
                     </div>
                 </div>
@@ -469,63 +495,16 @@ const ReportForm: React.FC = () => {
           {step === 2 && (
             <section className="space-y-6 animate-fade-in">
               <h3 className={sectionTitleClass}>Étape 2: Statistiques des membres</h3>
-              <div>
-                <h4 className="text-md font-semibold text-gray-700 mb-2">Membres sur Liste</h4>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-6 p-4 border rounded-md bg-gray-50">
-                    <div>
-                        <label htmlFor="registeredMen" className={labelClass}>👨 Hommes</label>
-                        <input 
-                            type="text" 
-                            name="registeredMen" 
-                            id="registeredMen" 
-                            value={formData.registeredMen} 
-                            onChange={handleChange} 
-                            className={inputClass}
-                            pattern="[0-9]*"
-                            inputMode="numeric"
-                            title="Veuillez entrer uniquement des chiffres"
-                        />
-                    </div>
-                    <div>
-                        <label htmlFor="registeredWomen" className={labelClass}>👩 Femmes</label>
-                        <input 
-                            type="text" 
-                            name="registeredWomen" 
-                            id="registeredWomen" 
-                            value={formData.registeredWomen} 
-                            onChange={handleChange} 
-                            className={inputClass}
-                            pattern="[0-9]*"
-                            inputMode="numeric"
-                            title="Veuillez entrer uniquement des chiffres"
-                        />
-                    </div>
-                    <div>
-                        <label htmlFor="registeredChildren" className={labelClass}>🧒 Enfants</label>
-                        <input 
-                            type="text" 
-                            name="registeredChildren" 
-                            id="registeredChildren" 
-                            value={formData.registeredChildren} 
-                            onChange={handleChange} 
-                            className={inputClass}
-                            pattern="[0-9]*"
-                            inputMode="numeric"
-                            title="Veuillez entrer uniquement des chiffres"
-                        />
-                    </div>
-                    <div>
-                        <label htmlFor="registeredTotal" className={labelClass}>∑ Total sur Liste</label>
-                        <input 
-                            type="text" 
-                            name="registeredTotal" 
-                            id="registeredTotal" 
-                            value={calculatedStats.registeredMembers} 
-                            className={`${inputClass} bg-gray-100 font-bold`} 
-                            readOnly 
-                        />
-                    </div>
-                </div>
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-md mb-4">
+                <p className="text-sm text-blue-800">
+                  📋 <strong>Membres inscrits initialement :</strong> {calculatedStats.registeredMembers} personne(s)
+                  <br />
+                  <span className="text-xs text-blue-600">
+                    Ce nombre provient des informations de la cellule. 
+                    {Number(formData.attendees) > calculatedStats.registeredMembers && 
+                      " 🎉 Félicitations ! Votre cellule a grandi !"}
+                  </span>
+                </p>
               </div>
 
               <div>

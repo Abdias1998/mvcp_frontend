@@ -5,6 +5,8 @@ import { REGIONS } from '../constants.ts';
 import { SpinnerIcon, PencilIcon, TrashIcon, PlusCircleIcon } from './icons.tsx';
 import { useToast } from '../contexts/ToastContext.tsx';
 import ConfirmationModal from './ConfirmationModal.tsx';
+import Pagination from './Pagination.tsx';
+import { usePagination } from '../hooks/usePagination.ts';
 
 // Reusable Modal Component
 const Modal: React.FC<{ isOpen: boolean, onClose: () => void, title: string, children: React.ReactNode }> = ({ isOpen, onClose, title, children }) => {
@@ -191,21 +193,36 @@ const GroupManagement: React.FC = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {filteredGroups.map(g => (
-                             <tr key={g.id} className="bg-white border-b hover:bg-gray-50">
-                                <td className="px-6 py-4 font-medium text-gray-900">{g.name}</td>
-                                <td className="px-6 py-4">{g.region}</td>
-                                <td className="px-6 py-4 flex justify-end items-center space-x-3">
-                                    <button onClick={() => handleEdit(g)} className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded-full" title="Modifier"><PencilIcon className="h-5 w-5"/></button>
-                                    <button onClick={() => handleDeleteRequest(g.id, g.name)} className="p-1 text-red-600 hover:text-red-800 hover:bg-red-100 rounded-full" title="Supprimer"><TrashIcon className="h-5 w-5"/></button>
-                                </td>
-                            </tr>
-                        ))}
+                        {(() => {
+                            const pagination = usePagination<Group>({ items: filteredGroups, itemsPerPage: 10 });
+                            return pagination.paginatedItems.map(g => (
+                                <tr key={g.id} className="bg-white border-b hover:bg-gray-50">
+                                    <td className="px-6 py-4 font-medium text-gray-900">{g.name}</td>
+                                    <td className="px-6 py-4">{g.region}</td>
+                                    <td className="px-6 py-4 flex justify-end items-center space-x-3">
+                                        <button onClick={() => handleEdit(g)} className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded-full" title="Modifier"><PencilIcon className="h-5 w-5"/></button>
+                                        <button onClick={() => handleDeleteRequest(g.id, g.name)} className="p-1 text-red-600 hover:text-red-800 hover:bg-red-100 rounded-full" title="Supprimer"><TrashIcon className="h-5 w-5"/></button>
+                                    </td>
+                                </tr>
+                            ));
+                        })()}
                     </tbody>
                 </table>
-                 {filteredGroups.length === 0 && (
+                {filteredGroups.length === 0 && (
                     <p className="text-center text-gray-500 py-6">Aucun groupe trouvé.</p>
                 )}
+                {filteredGroups.length > 0 && (() => {
+                    const pagination = usePagination<Group>({ items: filteredGroups, itemsPerPage: 10 });
+                    return (
+                        <Pagination
+                            currentPage={pagination.currentPage}
+                            totalPages={pagination.totalPages}
+                            onPageChange={pagination.goToPage}
+                            itemsPerPage={pagination.itemsPerPage}
+                            totalItems={pagination.totalItems}
+                        />
+                    );
+                })()}
             </div>
              <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingGroup?.id ? "Modifier le Groupe" : "Ajouter un Groupe"}>
                 {editingGroup && <GroupForm group={editingGroup} onSave={handleSave} onCancel={() => setIsModalOpen(false)} />}

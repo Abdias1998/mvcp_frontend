@@ -5,6 +5,8 @@ import { REGIONS, CELL_CATEGORIES } from '../constants.ts';
 import { SpinnerIcon, PencilIcon, TrashIcon, PlusCircleIcon, ChevronRightIcon } from './icons.tsx';
 import { useToast } from '../contexts/ToastContext.tsx';
 import ConfirmationModal from './ConfirmationModal.tsx';
+import Pagination from './Pagination.tsx';
+import { usePagination } from '../hooks/usePagination.ts';
 
 const CELL_STATUSES: { value: CellStatus; label: string; color: string }[] = [
     { value: 'Active', label: 'Active', color: 'bg-green-100 text-green-800' },
@@ -225,54 +227,70 @@ const CellManagement: React.FC<{ user: User }> = ({ user }) => {
                                 })}
                             </div>
                         </button>
-                        {expandedRegions[regionName] && (
-                            <div className="bg-white p-2">
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-sm text-left text-gray-600">
-                                        <thead className="text-xs text-gray-700 uppercase bg-gray-50">
-                                            <tr>
-                                                <th className="px-4 py-3">Nom de la Cellule</th>
-                                                <th className="px-4 py-3">Hiérarchie</th>
-                                                <th className="px-4 py-3">Responsable</th>
-                                                <th className="px-4 py-3">Identifiant</th>
-                                                <th className="px-4 py-3">Statut</th>
-                                                <th className="px-4 py-3 text-right">Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {regionCells.map(cell => {
-                                                const statusInfo = CELL_STATUSES.find(s => s.value === cell.status);
-                                                return (
-                                                    <tr key={cell.id} className="border-b hover:bg-gray-50">
-                                                        <td className="px-4 py-3 font-medium text-gray-900">{cell.cellName}</td>
-                                                        <td className="px-4 py-3 text-xs">{`${cell.group} > ${cell.district}`}</td>
-                                                        <td className="px-4 py-3">{cell.leaderName}</td>
-                                                        <td className="px-4 py-3">
-                                                            {(cell as any).leaderIdentifier ? (
-                                                                <span className="font-mono bg-gray-100 px-2 py-1 rounded text-sm">
-                                                                    {(cell as any).leaderIdentifier}
+                        {expandedRegions[regionName] && (() => {
+                            const pagination = usePagination<Cell>({ items: regionCells, itemsPerPage: 10 });
+                            return (
+                                <div className="bg-white p-2">
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-sm text-left text-gray-600">
+                                            <thead className="text-xs text-gray-700 uppercase bg-gray-50">
+                                                <tr>
+                                                    <th className="px-4 py-3">Nom de la Cellule</th>
+                                                    <th className="px-4 py-3">Hiérarchie</th>
+                                                    <th className="px-4 py-3">Responsable</th>
+                                                    <th className="px-4 py-3">Identifiant</th>
+                                                    <th className="px-4 py-3">Membres inscrits</th>
+                                                    <th className="px-4 py-3">Statut</th>
+                                                    <th className="px-4 py-3 text-right">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {pagination.paginatedItems.map(cell => {
+                                                    const statusInfo = CELL_STATUSES.find(s => s.value === cell.status);
+                                                    return (
+                                                        <tr key={cell.id} className="border-b hover:bg-gray-50">
+                                                            <td className="px-4 py-3 font-medium text-gray-900">{cell.cellName}</td>
+                                                            <td className="px-4 py-3 text-xs">{`${cell.group} > ${cell.district}`}</td>
+                                                            <td className="px-4 py-3">{cell.leaderName}</td>
+                                                            <td className="px-4 py-3">
+                                                                {(cell as any).leaderIdentifier ? (
+                                                                    <span className="font-mono bg-gray-100 px-2 py-1 rounded text-sm">
+                                                                        {(cell as any).leaderIdentifier}
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="text-gray-400 text-xs">N/A</span>
+                                                                )}
+                                                            </td>
+                                                            <td className="px-4 py-3 text-center">
+                                                                <span className="font-semibold text-blue-600">
+                                                                    {cell.initialMembersCount || 0}
                                                                 </span>
-                                                            ) : (
-                                                                <span className="text-gray-400 text-xs">N/A</span>
-                                                            )}
-                                                        </td>
-                                                        <td className="px-4 py-3">
-                                                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusInfo?.color}`}>
-                                                                {statusInfo?.label}
-                                                            </span>
-                                                        </td>
-                                                        <td className="px-4 py-3 flex justify-end items-center space-x-3">
-                                                            <button onClick={() => handleEdit(cell)} className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded-full" title="Modifier"><PencilIcon className="h-5 w-5"/></button>
-                                                            <button onClick={() => handleDeleteRequest(cell.id || (cell as any)._id, cell.cellName)} className="p-1 text-red-600 hover:text-red-800 hover:bg-red-100 rounded-full" title="Supprimer"><TrashIcon className="h-5 w-5"/></button>
-                                                        </td>
-                                                    </tr>
-                                                );
-                                            })}
-                                        </tbody>
-                                    </table>
+                                                            </td>
+                                                            <td className="px-4 py-3">
+                                                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusInfo?.color}`}>
+                                                                    {statusInfo?.label}
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-4 py-3 flex justify-end items-center space-x-3">
+                                                                <button onClick={() => handleEdit(cell)} className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded-full" title="Modifier"><PencilIcon className="h-5 w-5"/></button>
+                                                                <button onClick={() => handleDeleteRequest(cell.id || (cell as any)._id, cell.cellName)} className="p-1 text-red-600 hover:text-red-800 hover:bg-red-100 rounded-full" title="Supprimer"><TrashIcon className="h-5 w-5"/></button>
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <Pagination
+                                        currentPage={pagination.currentPage}
+                                        totalPages={pagination.totalPages}
+                                        onPageChange={pagination.goToPage}
+                                        itemsPerPage={pagination.itemsPerPage}
+                                        totalItems={pagination.totalItems}
+                                    />
                                 </div>
-                            </div>
-                        )}
+                            );
+                        })()}
                     </div>
                 ))}
                 {groupedAndCountedCells.length === 0 && (

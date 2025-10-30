@@ -3,6 +3,8 @@ import { User, UserRole } from '../types.ts';
 import { api } from '../services/api.real';
 import { useToast } from '../contexts/ToastContext.tsx';
 import { UsersIcon, SpinnerIcon } from './icons.tsx';
+import Pagination from './Pagination.tsx';
+import { usePagination } from '../hooks/usePagination.ts';
 
 interface HierarchyUsersViewProps {
     user: User;
@@ -18,6 +20,13 @@ const HierarchyUsersView: React.FC<HierarchyUsersViewProps> = ({ user }) => {
             setLoading(true);
             try {
                 const hierarchyUsers = await api.getUsersByHierarchy(user);
+                console.log('📊 Hierarchy users received:', hierarchyUsers);
+                // Log CELL_LEADER data specifically
+                hierarchyUsers.forEach(u => {
+                    if (u.role === UserRole.CELL_LEADER) {
+                        console.log(`📊 CELL_LEADER ${u.name}: initialMembersCount =`, (u as any).initialMembersCount);
+                    }
+                });
                 setUsers(hierarchyUsers);
             } catch (error) {
                 console.error('Erreur lors du chargement des utilisateurs:', error);
@@ -110,39 +119,42 @@ const HierarchyUsersView: React.FC<HierarchyUsersViewProps> = ({ user }) => {
                 </p>
 
                 <div className="space-y-4">
-                    {(Object.entries(groupedUsers) as [UserRole, User[]][]).map(([role, roleUsers]) => (
-                        <div key={role} className="border rounded-lg p-4">
-                            <h4 className="font-semibold text-gray-700 mb-3 flex items-center">
-                                <span className={`px-3 py-1 rounded-full text-sm ${getRoleBadgeColor(role)}`}>
-                                    {getRoleLabel(role)}
-                                </span>
-                                <span className="ml-2 text-gray-500 text-sm">({roleUsers.length})</span>
-                            </h4>
-                            
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-sm">
-                                    <thead className="bg-gray-50">
-                                        <tr>
-                                            <th className="p-2 text-left">Nom</th>
-                                            <th className="p-2 text-left">Contact</th>
-                                            {role === UserRole.CELL_LEADER && (
-                                                <>
-                                                    <th className="p-2 text-left">Cellule</th>
-                                                    <th className="p-2 text-left">Identifiant</th>
-                                                </>
-                                            )}
-                                            {role !== UserRole.CELL_LEADER && (
-                                                <>
-                                                    <th className="p-2 text-left">Région</th>
-                                                    <th className="p-2 text-left">Groupe</th>
-                                                    <th className="p-2 text-left">District</th>
-                                                </>
-                                            )}
-                                            <th className="p-2 text-left">Statut</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {roleUsers.map((u) => (
+                    {(Object.entries(groupedUsers) as [UserRole, User[]][]).map(([role, roleUsers]) => {
+                        const pagination = usePagination<User>({ items: roleUsers, itemsPerPage: 10 });
+                        return (
+                            <div key={role} className="border rounded-lg p-4">
+                                <h4 className="font-semibold text-gray-700 mb-3 flex items-center">
+                                    <span className={`px-3 py-1 rounded-full text-sm ${getRoleBadgeColor(role)}`}>
+                                        {getRoleLabel(role)}
+                                    </span>
+                                    <span className="ml-2 text-gray-500 text-sm">({roleUsers.length})</span>
+                                </h4>
+                                
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-sm">
+                                        <thead className="bg-gray-50">
+                                            <tr>
+                                                <th className="p-2 text-left">Nom</th>
+                                                <th className="p-2 text-left">Contact</th>
+                                                {role === UserRole.CELL_LEADER && (
+                                                    <>
+                                                        <th className="p-2 text-left">Cellule</th>
+                                                        <th className="p-2 text-left">Identifiant</th>
+                                                        <th className="p-2 text-left">Membres inscrits</th>
+                                                    </>
+                                                )}
+                                                {role !== UserRole.CELL_LEADER && (
+                                                    <>
+                                                        <th className="p-2 text-left">Région</th>
+                                                        <th className="p-2 text-left">Groupe</th>
+                                                        <th className="p-2 text-left">District</th>
+                                                    </>
+                                                )}
+                                                <th className="p-2 text-left">Statut</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {pagination.paginatedItems.map((u) => (
                                             <tr key={u.uid} className="border-t hover:bg-gray-50">
                                                 <td className="p-2 font-medium">{u.name}</td>
                                                 <td className="p-2">{u.contact || 'N/A'}</td>
@@ -152,6 +164,11 @@ const HierarchyUsersView: React.FC<HierarchyUsersViewProps> = ({ user }) => {
                                                         <td className="p-2">
                                                             <span className="font-mono bg-gray-100 px-2 py-1 rounded">
                                                                 {u.identifier || 'N/A'}
+                                                            </span>
+                                                        </td>
+                                                        <td className="p-2 text-center">
+                                                            <span className="font-semibold text-blue-600">
+                                                                {(u as any).initialMembersCount || 0}
                                                             </span>
                                                         </td>
                                                     </>
@@ -176,8 +193,16 @@ const HierarchyUsersView: React.FC<HierarchyUsersViewProps> = ({ user }) => {
                                     </tbody>
                                 </table>
                             </div>
+                            <Pagination
+                                currentPage={pagination.currentPage}
+                                totalPages={pagination.totalPages}
+                                onPageChange={pagination.goToPage}
+                                itemsPerPage={pagination.itemsPerPage}
+                                totalItems={pagination.totalItems}
+                            />
                         </div>
-                    ))}
+                        );
+                    })}
                 </div>
             </div>
 

@@ -100,7 +100,7 @@ const CellGrowthStatsPage: React.FC = () => {
     if (reports.length === 0) return 0;
     
     const total = reports.reduce((sum, report) => {
-      return sum + (report.registeredMen || 0) + (report.registeredWomen || 0) + (report.registeredChildren || 0);
+      return sum + (report.initialMembersCount || 0);
     }, 0);
     
     return total / reports.length;

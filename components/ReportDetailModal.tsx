@@ -21,7 +21,6 @@ const DetailRow: React.FC<{ label: string; value?: string | number | null; child
 const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, onClose, onDeleteRequest, hideDelete = false }) => {
     if (!report) return null;
     
-    const registeredTotal = report.registeredMen + report.registeredWomen + report.registeredChildren;
     const isLittoral = report.region === 'Littoral';
 
     const handleDeleteClick = () => {
@@ -64,7 +63,7 @@ const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, onClose, 
                         <h4 className="font-semibold text-gray-700 mb-2">Statistiques</h4>
                         <div className="border-t border-gray-200">
                             <dl className="divide-y divide-gray-200">
-                                <DetailRow label="Membres sur Liste" value={`${registeredTotal} (H: ${report.registeredMen}, F: ${report.registeredWomen}, E: ${report.registeredChildren})`} />
+                                <DetailRow label="Membres inscrits" value={report.initialMembersCount} />
                                 <DetailRow label="Présents (sur liste)" value={report.attendees} />
                                 <DetailRow label="Absents (sur liste)" value={report.absentees} />
                                 <DetailRow label="Total présents ce jour" value={report.totalPresent} />

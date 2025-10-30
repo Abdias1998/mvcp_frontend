@@ -524,7 +524,7 @@ const LittoralDashboard: React.FC<{ user: User }> = ({ user }) => {
                 latestReportsByCell.set(key, r);
             }
         });
-        const totalMembers = Array.from(latestReportsByCell.values()).reduce((acc, r) => acc + r.registeredMen + r.registeredWomen + r.registeredChildren, 0);
+        const totalMembers = Array.from(latestReportsByCell.values()).reduce((acc, r) => acc + r.initialMembersCount, 0);
 
         return { totalReports, avgAttendance, totalMembers, newMembers, totalVisits };
     }, [reportsToAnalyze]);
@@ -569,23 +569,9 @@ const LittoralDashboard: React.FC<{ user: User }> = ({ user }) => {
     }, [reportsToAnalyze]);
 
     const demographicsData = useMemo(() => {
-        const latestReportsByCell = new Map<string, Report>();
-        reportsToAnalyze.forEach(r => {
-            const key = `${r.region}-${r.group}-${r.district}-${r.cellName}`;
-            if (!latestReportsByCell.has(key) || new Date(r.cellDate) > new Date(latestReportsByCell.get(key)!.cellDate)) {
-                latestReportsByCell.set(key, r);
-            }
-        });
-        const latestReports = Array.from(latestReportsByCell.values());
-        const totalMen = latestReports.reduce((sum, r) => sum + r.registeredMen, 0);
-        const totalWomen = latestReports.reduce((sum, r) => sum + r.registeredWomen, 0);
-        const totalChildren = latestReports.reduce((sum, r) => sum + r.registeredChildren, 0);
-        const data: { name: string, value: number }[] = [
-            { name: 'Hommes', value: totalMen },
-            { name: 'Femmes', value: totalWomen },
-            { name: 'Enfants', value: totalChildren },
-        ];
-        return data.filter(d => d.value > 0);
+        // Graphique démographique désactivé car les détails hommes/femmes/enfants 
+        // ne sont plus collectés (seul initialMembersCount est disponible)
+        return [];
     }, [reportsToAnalyze]);
     
     const cellStatusData = useMemo(() => {
@@ -1040,7 +1026,7 @@ const RegionsDashboard: React.FC<{ user: User }> = ({ user }) => {
                 latestReportsByCell.set(key, r);
             }
         });
-        const totalMembers = Array.from(latestReportsByCell.values()).reduce((acc, r) => acc + r.registeredMen + r.registeredWomen + r.registeredChildren, 0);
+        const totalMembers = Array.from(latestReportsByCell.values()).reduce((acc, r) => acc + r.initialMembersCount, 0);
 
         return { totalReports, totalMembers, newMembers, totalVisits };
     }, [reportsToAnalyze]);
@@ -1085,23 +1071,9 @@ const RegionsDashboard: React.FC<{ user: User }> = ({ user }) => {
     }, [reportsToAnalyze]);
 
     const demographicsData = useMemo(() => {
-        const latestReportsByCell = new Map<string, Report>();
-        reportsToAnalyze.forEach(r => {
-            const key = `${r.region}-${r.group}-${r.district}-${r.cellName}`;
-            if (!latestReportsByCell.has(key) || new Date(r.cellDate) > new Date(latestReportsByCell.get(key)!.cellDate)) {
-                latestReportsByCell.set(key, r);
-            }
-        });
-        const latestReports = Array.from(latestReportsByCell.values());
-        const totalMen = latestReports.reduce((sum, r) => sum + r.registeredMen, 0);
-        const totalWomen = latestReports.reduce((sum, r) => sum + r.registeredWomen, 0);
-        const totalChildren = latestReports.reduce((sum, r) => sum + r.registeredChildren, 0);
-        const data: { name: string, value: number }[] = [
-            { name: 'Hommes', value: totalMen },
-            { name: 'Femmes', value: totalWomen },
-            { name: 'Enfants', value: totalChildren },
-        ];
-        return data.filter(d => d.value > 0);
+        // Graphique démographique désactivé car les détails hommes/femmes/enfants 
+        // ne sont plus collectés (seul initialMembersCount est disponible)
+        return [];
     }, [reportsToAnalyze]);
     
      const cellStatusData = useMemo(() => {
