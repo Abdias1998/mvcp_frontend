@@ -232,20 +232,40 @@ const LoginPage: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
     
-    const from = location.state?.from?.pathname || "/admin";
+    // Déterminer la page de redirection par défaut selon le rôle
+    const getDefaultRedirect = (userRole?: UserRole) => {
+        if (!userRole) return "/";
+        
+        switch (userRole) {
+            case UserRole.CELL_LEADER:
+                return "/rapport";
+            case UserRole.NATIONAL_COORDINATOR:
+                return "/admin";
+            case UserRole.REGIONAL_PASTOR:
+            case UserRole.GROUP_PASTOR:
+            case UserRole.DISTRICT_PASTOR:
+                return "/management";
+            default:
+                return "/";
+        }
+    };
 
     useEffect(() => {
         if (user) {
-            navigate(from, { replace: true });
+            const from = location.state?.from?.pathname;
+            const defaultRedirect = getDefaultRedirect(user.role);
+            navigate(from || defaultRedirect, { replace: true });
         }
-    }, [user, navigate, from]);
+    }, [user, navigate, location.state]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         try {
-            await login(identifier, password);
-            navigate(from, { replace: true });
+            const loggedInUser = await login(identifier, password);
+            const from = location.state?.from?.pathname;
+            const defaultRedirect = getDefaultRedirect(loggedInUser.role);
+            navigate(from || defaultRedirect, { replace: true });
         } catch (err: any) {
             showToast(err.message || "Erreur de connexion.", 'error');
         } finally {
