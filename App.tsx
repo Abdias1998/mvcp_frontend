@@ -249,11 +249,40 @@ const LoginPage: React.FC = () => {
         }
     };
 
+    // Vérifie si une route est autorisée pour un rôle donné
+    const isRouteAllowedForRole = (path: string, userRole?: UserRole): boolean => {
+        if (!userRole || !path) return false;
+        
+        // Routes interdites pour CELL_LEADER
+        if (userRole === UserRole.CELL_LEADER) {
+            const forbiddenRoutes = ['/management', '/team', '/admin', '/users', '/create-cell-leader'];
+            return !forbiddenRoutes.includes(path);
+        }
+        
+        // Routes réservées au NATIONAL_COORDINATOR
+        if (path === '/admin' || path === '/users') {
+            return userRole === UserRole.NATIONAL_COORDINATOR;
+        }
+        
+        // Route /team réservée aux pasteurs (sauf CELL_LEADER)
+        if (path === '/team') {
+            return userRole === UserRole.REGIONAL_PASTOR || 
+                   userRole === UserRole.GROUP_PASTOR || 
+                   userRole === UserRole.DISTRICT_PASTOR;
+        }
+        
+        // Toutes les autres routes sont autorisées (sauf celles déjà filtrées ci-dessus)
+        return true;
+    };
+
     useEffect(() => {
         if (user) {
             const from = location.state?.from?.pathname;
             const defaultRedirect = getDefaultRedirect(user.role);
-            navigate(from || defaultRedirect, { replace: true });
+            
+            // Utiliser 'from' seulement si la route est autorisée pour le rôle
+            const redirectTo = (from && isRouteAllowedForRole(from, user.role)) ? from : defaultRedirect;
+            navigate(redirectTo, { replace: true });
         }
     }, [user, navigate, location.state]);
 
@@ -264,7 +293,10 @@ const LoginPage: React.FC = () => {
             const loggedInUser = await login(identifier, password);
             const from = location.state?.from?.pathname;
             const defaultRedirect = getDefaultRedirect(loggedInUser.role);
-            navigate(from || defaultRedirect, { replace: true });
+            
+            // Utiliser 'from' seulement si la route est autorisée pour le rôle
+            const redirectTo = (from && isRouteAllowedForRole(from, loggedInUser.role)) ? from : defaultRedirect;
+            navigate(redirectTo, { replace: true });
         } catch (err: any) {
             showToast(err.message || "Erreur de connexion.", 'error');
         } finally {
