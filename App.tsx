@@ -84,9 +84,8 @@ const Navbar = () => {
         <header className="bg-blue-700 text-white shadow-md sticky top-0 z-40">
             <div className="px-4 sm:px-6 lg:px-8">
                 <div className="flex justify-between items-center py-3">
-                    <Link to="/" onClick={() => setIsMenuOpen(false)} className="flex items-center space-x-2">
+                    <Link to="/" onClick={() => setIsMenuOpen(false)} className="flex items-center">
                         <LogoIcon className="h-8 w-8" />
-                        <span className="font-bold text-xl">MVCP-BENIN</span>
                     </Link>
                     <div className="hidden md:flex items-center space-x-1">
                        <NavLinks />
@@ -144,9 +143,9 @@ const HomePage: React.FC = () => {
                         <h1 className="text-3xl font-extrabold text-gray-800 mb-3 text-center">
                             Ministère de la Vie Chrétienne Profonde
                         </h1>
-                        <p className="text-lg text-gray-600 mb-8 text-center">
+                        {/* <p className="text-lg text-gray-600 mb-8 text-center">
                             MVCP-BENIN
-                        </p>
+                        </p> */}
 
                         {/* Boutons d'action */}
                         <div className="space-y-4">

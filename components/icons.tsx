@@ -79,37 +79,15 @@ export const PlusCircleIcon: React.FC<{ className?: string }> = ({ className = "
 );
 
 /**
- * A modern, clean icon of a church building, representing the ministry.
- * The design uses the application's blue gradient for the main structure
- * and a golden cross, maintaining brand consistency.
+ * Logo MVCP-BENIN
+ * Affiche l'image logo.jpeg du dossier public
  */
 export const LogoIcon: React.FC<{ className?: string }> = ({ className = "h-8 w-8" }) => (
-    <svg
-        className={className}
-        viewBox="0 0 100 100"
-        xmlns="http://www.w3.org/2000/svg"
-        aria-label="MVCP-BENIN Logo - Église"
-    >
-        <defs>
-            <linearGradient id="logo-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#3B82F6" />
-                <stop offset="100%" stopColor="#1D4ED8" />
-            </linearGradient>
-        </defs>
-        
-        {/* Church Building */}
-        <path 
-            fill="url(#logo-gradient)" 
-            d="M50 10 L10 45 V90 H90 V45 L50 10 Z"
-        />
-        
-        {/* Cross on top */}
-        <rect x="45" y="0" width="10" height="20" rx="2" fill="#FBBF24" />
-        <rect x="38" y="5" width="24" height="10" rx="2" fill="#FBBF24" />
-
-        {/* Door */}
-        <path d="M42 90 V70 C42 60, 58 60, 58 70 V90 Z" fill="white" />
-    </svg>
+    <img
+        src="/logo.jpeg"
+        alt="MVCP-BENIN Logo"
+        className={`${className} object-contain rounded-full`}
+    />
 );
 
 // Menu Icon

@@ -3,7 +3,7 @@ const CACHE_NAME = 'mvcp-benin-cache-v2'; // Incremented version
 const STATIC_ASSETS = [
   '/',
   '/index.html',
-  '/logo192.png',
+  '/logo.jpeg',
   '/logo512.png'
 ];
 

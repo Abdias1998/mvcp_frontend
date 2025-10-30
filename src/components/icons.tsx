@@ -81,7 +81,7 @@ export const LogoIcon: React.FC<{ className?: string }> = ({ className = "h-8 w-
         className={className}
         viewBox="0 0 100 100"
         xmlns="http://www.w3.org/2000/svg"
-        aria-label="MVCP-BENIN Logo - Église"
+        // aria-label="MVCP-BENIN Logo - Église"
     >
         <defs>
             <linearGradient id="logo-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
