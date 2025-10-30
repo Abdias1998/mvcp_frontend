@@ -6,6 +6,7 @@ import { Cell, Report, UserRole } from '../types';
 import CellGrowthBadge from './CellGrowthBadge.tsx';
 import { SpinnerIcon } from './icons.tsx';
 import { calculateCellGrowth } from '../utils/cellGrowth';
+import { getContextualPageTitle } from '../utils/pageTitle.ts';
 
 const CellGrowthStatsPage: React.FC = () => {
   const { user } = useAuth();
@@ -246,10 +247,11 @@ const CellGrowthStatsPage: React.FC = () => {
   ];
 
   const years = Array.from({ length: 10 }, (_, i) => currentDate.getFullYear() - i);
+  const pageTitle = getContextualPageTitle('Évolution des Cellules', user);
 
   return (
     <div className="max-w-7xl mx-auto">
-      <h1 className="text-3xl font-bold text-gray-800 mb-6">Évolution des Cellules</h1>
+      <h1 className="text-3xl font-bold text-gray-800 mb-6">{pageTitle}</h1>
 
       {/* Filtres par mois et année */}
       <div className="bg-white p-4 rounded-lg shadow-md mb-6">

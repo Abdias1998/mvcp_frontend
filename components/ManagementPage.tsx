@@ -6,8 +6,8 @@ import PastorManagement from './PastorManagement.tsx';
 import CellManagement from './CellManagement.tsx';
 import DistrictManagement from './DistrictManagement.tsx';
 import GroupManagement from './GroupManagement.tsx';
-import EventManagement from './EventManagement.tsx';
 import HierarchyView from './HierarchyView.tsx';
+import { getContextualPageTitle, getContextualDescription } from '../utils/pageTitle.ts';
 
 const ManagementPage: React.FC = () => {
     const { user } = useAuth();
@@ -27,8 +27,7 @@ const ManagementPage: React.FC = () => {
         availableTabs.push(
             { id: 'groups', label: 'Groupes' },
             { id: 'districts', label: 'Districts' },
-            { id: 'pastors', label: 'Responsables' },
-            { id: 'events', label: 'Évènements' }
+            { id: 'pastors', label: 'Responsables' }
         );
     }
     
@@ -85,13 +84,7 @@ const ManagementPage: React.FC = () => {
                         <PastorManagement />
                     </section>
                  ) : null;
-            case 'events':
-                return user.role === UserRole.NATIONAL_COORDINATOR ? (
-                    <section id="event-management">
-                        <h2 className="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">Gestion des Évènements</h2>
-                        <EventManagement />
-                    </section>
-                ) : null;
+
             default:
                 // Fallback to cell management if an invalid tab is selected
                 return (
@@ -103,11 +96,14 @@ const ManagementPage: React.FC = () => {
         }
     };
 
+    const pageTitle = getContextualPageTitle('Centre de Gestion', user);
+    const pageDescription = getContextualDescription('Gérez la structure, les cellules, et les responsables du ministère.', user);
+
     return (
         <div className="space-y-8">
             <div>
-                <h1 className="text-3xl font-bold text-gray-800">Centre de Gestion</h1>
-                <p className="text-gray-600 mt-1">Gérez la structure, les cellules, et les responsables du ministère.</p>
+                <h1 className="text-3xl font-bold text-gray-800">{pageTitle}</h1>
+                <p className="text-gray-600 mt-1">{pageDescription}</p>
             </div>
             
             <div className="bg-white p-3 rounded-xl shadow-md">

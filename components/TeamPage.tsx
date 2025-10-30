@@ -2,6 +2,7 @@ import React from 'react';
 import { useAuth } from '../contexts/AuthContext.tsx';
 import { UserRole } from '../types.ts';
 import HierarchyUsersView from './HierarchyUsersView.tsx';
+import { getContextualPageTitle, getContextualDescription } from '../utils/pageTitle.ts';
 
 const TeamPage: React.FC = () => {
     const { user } = useAuth();
@@ -24,12 +25,15 @@ const TeamPage: React.FC = () => {
         );
     }
 
+    const pageTitle = getContextualPageTitle('Mon Équipe', user);
+    const pageDescription = getContextualDescription('Gérez et visualisez les membres de votre équipe hiérarchique.', user);
+
     return (
         <div className="space-y-6">
             <div>
-                <h1 className="text-3xl font-bold text-gray-800">Mon Équipe</h1>
+                <h1 className="text-3xl font-bold text-gray-800">{pageTitle}</h1>
                 <p className="text-gray-600 mt-1">
-                    Gérez et visualisez les membres de votre équipe hiérarchique.
+                    {pageDescription}
                 </p>
             </div>
 

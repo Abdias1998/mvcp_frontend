@@ -5,6 +5,7 @@ import { PlusCircleIcon, TrashIcon, SpinnerIcon, HeartIcon } from './icons.tsx';
 import { useToast } from '../contexts/ToastContext.tsx';
 import { useAuth } from '../contexts/AuthContext.tsx';
 import { REGIONS, CELL_CATEGORIES } from '../constants.ts';
+import { getContextualPageTitle, getContextualDescription } from '../utils/pageTitle.ts';
 
 const useLocalStorage = <T,>(key: string, initialValue: T): [T, React.Dispatch<React.SetStateAction<T>>] => {
   const [storedValue, setStoredValue] = useState<T>(() => {
@@ -460,10 +461,13 @@ const ReportForm: React.FC = () => {
         </div>
     );
 
+    const pageTitle = getContextualPageTitle('Rapport Hebdomadaire de Cellule', user);
+    const pageDescription = getContextualDescription('Remplissez tous les champs pour soumettre le rapport de votre cellule.', user);
+
     return (
       <div className="bg-white p-8 rounded-xl shadow-lg">
-        <h2 className="text-3xl font-bold text-gray-800 mb-2">Rapport Hebdomadaire de Cellule</h2>
-        <p className="text-gray-600 mb-6">Remplissez tous les champs pour soumettre le rapport de votre cellule.</p>
+        <h2 className="text-3xl font-bold text-gray-800 mb-2">{pageTitle}</h2>
+        <p className="text-gray-600 mb-6">{pageDescription}</p>
         
         <div className="mb-8">
             <div className="flex items-center">
