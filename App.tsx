@@ -50,9 +50,9 @@ const Navbar = () => {
           {user && (
             <>
               <NavLink to="/rapport" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `${linkClasses} ${isActive ? activeLinkClass : inactiveLinkClass}`}>Rapport</NavLink>
+              <NavLink to="/admin" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `${linkClasses} ${isActive ? activeLinkClass : inactiveLinkClass}`}>Tableau de bord</NavLink>
               {user.role === UserRole.NATIONAL_COORDINATOR && (
                 <>
-                  <NavLink to="/admin" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `${linkClasses} ${isActive ? activeLinkClass : inactiveLinkClass}`}>Tableau de bord</NavLink>
                   <NavLink to="/users" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `${linkClasses} ${isActive ? activeLinkClass : inactiveLinkClass}`}>Utilisateurs</NavLink>
                   <NavLink to="/admin-reset-link" onClick={() => setIsMenuOpen(false)} className={({isActive}) => `${linkClasses} ${isActive ? activeLinkClass : inactiveLinkClass}`}>Réinitialisation MDP</NavLink>
                 </>
@@ -486,9 +486,9 @@ function App() {
                   </ProtectedRoute>
                 } /> */}
                 <Route path="/admin" element={
-                  <RoleProtectedRoute allowedRoles={[UserRole.NATIONAL_COORDINATOR]}>
+                  <ProtectedRoute>
                     <Dashboard />
-                  </RoleProtectedRoute>
+                  </ProtectedRoute>
                 } />
                 <Route path="/users" element={
                   <RoleProtectedRoute allowedRoles={[UserRole.NATIONAL_COORDINATOR]}>

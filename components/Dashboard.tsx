@@ -300,7 +300,7 @@ const ReportPDF = forwardRef<HTMLDivElement, ReportPDFProps>(({ user, stats, dat
             </div>
             
             <div className="mb-8">
-                 <h3 className="text-lg font-semibold text-gray-700 mb-2">Répartition Démographique</h3>
+                 <h3 className="text-lg font-semibold text-gray-700 mb-2">Répartition par Catégorie de Cellule</h3>
                  <div className="flex space-x-4">
                     {demographicsData.map(d => (
                         <div key={d.name} className="p-3 bg-blue-50 rounded-lg flex-1 text-center">
@@ -569,21 +569,65 @@ const LittoralDashboard: React.FC<{ user: User }> = ({ user }) => {
     }, [reportsToAnalyze]);
 
     const demographicsData = useMemo(() => {
-        // Graphique démographique désactivé car les détails hommes/femmes/enfants 
-        // ne sont plus collectés (seul initialMembersCount est disponible)
-        return [];
+        // Répartition par catégorie de cellule avec regroupement (nombre total de membres inscrits)
+        const categoryCount: { [key: string]: number } = {
+            'Hommes': 0,
+            'Femmes': 0,
+            'Enfants': 0,
+            'Mixte': 0
+        };
+
+        reportsToAnalyze.forEach(report => {
+            const category = report.cellCategory;
+            const membersCount = report.initialMembersCount || 0; // Nombre de membres inscrits
+            
+            // Regrouper "Hommes" et "Jeunes Hommes" → "Hommes"
+            if (category === 'Hommes' || category === 'Jeunes Hommes') {
+                categoryCount['Hommes'] += membersCount;
+            }
+            // Regrouper "Femmes" et "Jeunes Femmes" → "Femmes"
+            else if (category === 'Femmes' || category === 'Jeunes Femmes') {
+                categoryCount['Femmes'] += membersCount;
+            }
+            // Enfants (pas de regroupement)
+            else if (category === 'Enfants') {
+                categoryCount['Enfants'] += membersCount;
+            }
+            // Mixte (pas de regroupement)
+            else if (category === 'Mixte') {
+                categoryCount['Mixte'] += membersCount;
+            }
+        });
+
+        return [
+            { name: 'Hommes', value: categoryCount['Hommes'] },
+            { name: 'Femmes', value: categoryCount['Femmes'] },
+            { name: 'Enfants', value: categoryCount['Enfants'] },
+            { name: 'Mixte', value: categoryCount['Mixte'] }
+        ].filter(d => d.value > 0); // Ne montrer que les catégories avec des membres
     }, [reportsToAnalyze]);
     
-    const cellStatusData = useMemo(() => {
-        const statusCounts = cellsToAnalyze.reduce((acc, cell) => {
-            acc[cell.status] = (acc[cell.status] || 0) + 1;
-            return acc;
-        }, {} as { [key in CellStatus]: number });
+    const participationRateData = useMemo(() => {
+        // Calculer le taux de participation aux programmes
+        const totalMembers = reportsToAnalyze.reduce((sum, r) => sum + (r.initialMembersCount || 0), 0);
+        const totalBibleStudy = reportsToAnalyze.reduce((sum, r) => sum + (r.bibleStudy || 0), 0);
+        const totalMiracleHour = reportsToAnalyze.reduce((sum, r) => sum + (r.miracleHour || 0), 0);
+        const totalSundayService = reportsToAnalyze.reduce((sum, r) => sum + (r.sundayServiceAttendance || 0), 0);
 
-        return (Object.entries(statusCounts) as [CellStatus, number][]) 
-            .map(([name, value]) => ({ name, value }))
-            .filter(d => d.value > 0);
-    }, [cellsToAnalyze]);
+        if (totalMembers === 0) return [];
+
+        const bibleStudyPercent = Math.round((totalBibleStudy / totalMembers) * 100);
+        const miracleHourPercent = Math.round((totalMiracleHour / totalMembers) * 100);
+        const sundayServicePercent = Math.round((totalSundayService / totalMembers) * 100);
+        const missingPercent = Math.max(0, 100 - Math.max(bibleStudyPercent, miracleHourPercent, sundayServicePercent));
+
+        return [
+            { name: 'Étude Biblique', value: bibleStudyPercent, count: totalBibleStudy, color: '#3B82F6' },
+            { name: 'Heure de Réveil', value: miracleHourPercent, count: totalMiracleHour, color: '#8B5CF6' },
+            { name: 'Culte Dominical', value: sundayServicePercent, count: totalSundayService, color: '#22C55E' },
+            { name: 'Absents', value: missingPercent, count: totalMembers - Math.max(totalBibleStudy, totalMiracleHour, totalSundayService), color: '#EF4444' }
+        ].filter(d => d.value > 0);
+    }, [reportsToAnalyze]);
 
     const trendsByGroup = useMemo(() => calculateTrend(reportsToAnalyze, 4, 'group', cells), [reportsToAnalyze, cells]);
     
@@ -841,25 +885,33 @@ const LittoralDashboard: React.FC<{ user: User }> = ({ user }) => {
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <div className="lg:col-span-1 bg-white p-6 rounded-xl shadow-md">
-                            <h3 className="font-semibold text-gray-700 mb-4">Statut des Cellules</h3>
-                            <ResponsiveContainer width="100%" height={300}>
+                        <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-md">
+                            <h3 className="font-semibold text-gray-700 mb-4">Taux de Participation aux Programmes</h3>
+                            <ResponsiveContainer width="100%" height={400}>
                                 <PieChart>
-                                    <Pie data={cellStatusData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
-                                         {cellStatusData.map((entry, index) => <Cell key={`cell-${index}`} fill={STATUS_COLORS[index % STATUS_COLORS.length]} />)}
+                                    <Pie 
+                                        data={participationRateData} 
+                                        dataKey="value" 
+                                        nameKey="name" 
+                                        cx="50%" 
+                                        cy="50%" 
+                                        outerRadius={100} 
+                                        label={({ name, value, count }) => `${name}: ${value}% (${count})`}
+                                    >
+                                         {participationRateData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
                                     </Pie>
-                                    <Tooltip />
+                                    <Tooltip formatter={(value: number, name: string, props: any) => [`${value}% (${props.payload.count} personnes)`, name]} />
                                     <Legend />
                                 </PieChart>
                             </ResponsiveContainer>
                         </div>
-                        <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-md">
-                            <h3 className="font-semibold text-gray-700 mb-4">Répartition Démographique</h3>
+                        <div className="lg:col-span-1 bg-white p-6 rounded-xl shadow-md">
+                            <h3 className="font-semibold text-gray-700 mb-4">Répartition par Catégorie de Cellule</h3>
                             <ResponsiveContainer width="100%" height={300}>
-                                <BarChart data={demographicsData} layout="vertical" margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                                <BarChart data={demographicsData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                                     <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis type="number" />
-                                    <YAxis type="category" dataKey="name" />
+                                    <XAxis dataKey="name" />
+                                    <YAxis />
                                     <Tooltip />
                                     <Bar dataKey="value" fill="#3B82F6" />
                                 </BarChart>
@@ -1071,21 +1123,65 @@ const RegionsDashboard: React.FC<{ user: User }> = ({ user }) => {
     }, [reportsToAnalyze]);
 
     const demographicsData = useMemo(() => {
-        // Graphique démographique désactivé car les détails hommes/femmes/enfants 
-        // ne sont plus collectés (seul initialMembersCount est disponible)
-        return [];
+        // Répartition par catégorie de cellule avec regroupement (nombre total de membres inscrits)
+        const categoryCount: { [key: string]: number } = {
+            'Hommes': 0,
+            'Femmes': 0,
+            'Enfants': 0,
+            'Mixte': 0
+        };
+
+        reportsToAnalyze.forEach(report => {
+            const category = report.cellCategory;
+            const membersCount = report.initialMembersCount || 0; // Nombre de membres inscrits
+            
+            // Regrouper "Hommes" et "Jeunes Hommes" → "Hommes"
+            if (category === 'Hommes' || category === 'Jeunes Hommes') {
+                categoryCount['Hommes'] += membersCount;
+            }
+            // Regrouper "Femmes" et "Jeunes Femmes" → "Femmes"
+            else if (category === 'Femmes' || category === 'Jeunes Femmes') {
+                categoryCount['Femmes'] += membersCount;
+            }
+            // Enfants (pas de regroupement)
+            else if (category === 'Enfants') {
+                categoryCount['Enfants'] += membersCount;
+            }
+            // Mixte (pas de regroupement)
+            else if (category === 'Mixte') {
+                categoryCount['Mixte'] += membersCount;
+            }
+        });
+
+        return [
+            { name: 'Hommes', value: categoryCount['Hommes'] },
+            { name: 'Femmes', value: categoryCount['Femmes'] },
+            { name: 'Enfants', value: categoryCount['Enfants'] },
+            { name: 'Mixte', value: categoryCount['Mixte'] }
+        ].filter(d => d.value > 0); // Ne montrer que les catégories avec des membres
     }, [reportsToAnalyze]);
     
-     const cellStatusData = useMemo(() => {
-        const statusCounts = cellsToAnalyze.reduce((acc, cell) => {
-            acc[cell.status] = (acc[cell.status] || 0) + 1;
-            return acc;
-        }, {} as { [key in CellStatus]: number });
+    const participationRateData = useMemo(() => {
+        // Calculer le taux de participation aux programmes
+        const totalMembers = reportsToAnalyze.reduce((sum, r) => sum + (r.initialMembersCount || 0), 0);
+        const totalBibleStudy = reportsToAnalyze.reduce((sum, r) => sum + (r.bibleStudy || 0), 0);
+        const totalMiracleHour = reportsToAnalyze.reduce((sum, r) => sum + (r.miracleHour || 0), 0);
+        const totalSundayService = reportsToAnalyze.reduce((sum, r) => sum + (r.sundayServiceAttendance || 0), 0);
 
-        return (Object.entries(statusCounts) as [CellStatus, number][])
-            .map(([name, value]) => ({ name, value }))
-            .filter(d => d.value > 0);
-    }, [cellsToAnalyze]);
+        if (totalMembers === 0) return [];
+
+        const bibleStudyPercent = Math.round((totalBibleStudy / totalMembers) * 100);
+        const miracleHourPercent = Math.round((totalMiracleHour / totalMembers) * 100);
+        const sundayServicePercent = Math.round((totalSundayService / totalMembers) * 100);
+        const missingPercent = Math.max(0, 100 - Math.max(bibleStudyPercent, miracleHourPercent, sundayServicePercent));
+
+        return [
+            { name: 'Étude Biblique', value: bibleStudyPercent, count: totalBibleStudy, color: '#3B82F6' },
+            { name: 'Heure de Réveil', value: miracleHourPercent, count: totalMiracleHour, color: '#8B5CF6' },
+            { name: 'Culte Dominical', value: sundayServicePercent, count: totalSundayService, color: '#22C55E' },
+            { name: 'Absents', value: missingPercent, count: totalMembers - Math.max(totalBibleStudy, totalMiracleHour, totalSundayService), color: '#EF4444' }
+        ].filter(d => d.value > 0);
+    }, [reportsToAnalyze]);
     
     const trendsData = useMemo(() => calculateTrend(reportsToAnalyze, 4, groupByKey, cells), [reportsToAnalyze, groupByKey, cells]);
     
@@ -1360,25 +1456,33 @@ const RegionsDashboard: React.FC<{ user: User }> = ({ user }) => {
                     </div>
 
                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <div className="lg:col-span-1 bg-white p-6 rounded-xl shadow-md">
-                            <h3 className="font-semibold text-gray-700 mb-4">Statut des Cellules</h3>
-                            <ResponsiveContainer width="100%" height={300}>
+                        <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-md">
+                            <h3 className="font-semibold text-gray-700 mb-4">Taux de Participation aux Programmes</h3>
+                            <ResponsiveContainer width="100%" height={400}>
                                 <PieChart>
-                                    <Pie data={cellStatusData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
-                                         {cellStatusData.map((entry, index) => <Cell key={`cell-${index}`} fill={STATUS_COLORS[index % STATUS_COLORS.length]} />)}
+                                    <Pie 
+                                        data={participationRateData} 
+                                        dataKey="value" 
+                                        nameKey="name" 
+                                        cx="50%" 
+                                        cy="50%" 
+                                        outerRadius={100} 
+                                        label={({ name, value, count }) => `${name}: ${value}% (${count})`}
+                                    >
+                                         {participationRateData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
                                     </Pie>
-                                    <Tooltip />
+                                    <Tooltip formatter={(value: number, name: string, props: any) => [`${value}% (${props.payload.count} personnes)`, name]} />
                                     <Legend />
                                 </PieChart>
                             </ResponsiveContainer>
                         </div>
-                        <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-md">
-                            <h3 className="font-semibold text-gray-700 mb-4">Répartition Démographique</h3>
+                        <div className="lg:col-span-1 bg-white p-6 rounded-xl shadow-md">
+                            <h3 className="font-semibold text-gray-700 mb-4">Répartition par Catégorie de Cellule</h3>
                             <ResponsiveContainer width="100%" height={300}>
-                                <BarChart data={demographicsData} layout="vertical" margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                                <BarChart data={demographicsData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                                     <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis type="number" />
-                                    <YAxis type="category" dataKey="name" />
+                                    <XAxis dataKey="name" />
+                                    <YAxis />
                                     <Tooltip />
                                     <Bar dataKey="value" fill="#3B82F6" />
                                 </BarChart>
@@ -1479,7 +1583,12 @@ const Dashboard: React.FC = () => {
     return <DashboardSelection />;
   }
 
-  // All other roles see the RegionsDashboard, which will be scoped by the API
+  // All other roles see the appropriate dashboard based on their region
+  // If user is in Littoral region, show LittoralDashboard, otherwise show RegionsDashboard
+  if (user.region === 'Littoral') {
+    return <LittoralDashboard user={user} />;
+  }
+  
   return <RegionsDashboard user={user} />;
 };
 

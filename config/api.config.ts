@@ -16,7 +16,7 @@ export const API_CONFIG = {
     USERS: '/users',
     PENDING_PASTORS: '/users/pending',
     APPROVE_PASTOR: '/users/approve',
-    CELL_LEADERS: '/cell-leaders',
+    CELL_LEADERS: '/cell-leaders', 
     
     // Reports
     REPORTS: '/reports',
