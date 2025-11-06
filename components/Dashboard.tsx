@@ -475,6 +475,11 @@ const LittoralDashboard: React.FC<{ user: User }> = ({ user }) => {
     const [currentPage, setCurrentPage] = useState(1);
     const [drilldownItem, setDrilldownItem] = useState<{ name: string; type: 'group' | 'region' } | null>(null);
     const [featuredTestimonyId, setFeaturedTestimonyId] = useState<string | null>(null);
+    
+    // Filtres pour le Coordinateur National
+    const [selectedGroup, setSelectedGroup] = useState<string>('all');
+    const [selectedDistrict, setSelectedDistrict] = useState<string>('all');
+    
     const { showToast } = useToast();
     const navigate = useNavigate();
 
@@ -506,8 +511,37 @@ const LittoralDashboard: React.FC<{ user: User }> = ({ user }) => {
         fetchReports();
     }, [user, dateRange]);
     
-    const reportsToAnalyze = useMemo(() => allReports.filter(r => r.region === 'Littoral'), [allReports]);
-    const cellsToAnalyze = useMemo(() => cells.filter(c => c.region === 'Littoral'), [cells]);
+    const reportsToAnalyze = useMemo(() => {
+        let filtered = allReports.filter(r => r.region === 'Littoral');
+        
+        // Appliquer le filtre de groupe si sélectionné
+        if (selectedGroup !== 'all') {
+            filtered = filtered.filter(r => r.group === selectedGroup);
+        }
+        
+        // Appliquer le filtre de district si sélectionné
+        if (selectedDistrict !== 'all') {
+            filtered = filtered.filter(r => r.district === selectedDistrict);
+        }
+        
+        return filtered;
+    }, [allReports, selectedGroup, selectedDistrict]);
+    
+    const cellsToAnalyze = useMemo(() => {
+        let filtered = cells.filter(c => c.region === 'Littoral');
+        
+        // Appliquer le filtre de groupe si sélectionné
+        if (selectedGroup !== 'all') {
+            filtered = filtered.filter(c => c.group === selectedGroup);
+        }
+        
+        // Appliquer le filtre de district si sélectionné
+        if (selectedDistrict !== 'all') {
+            filtered = filtered.filter(c => c.district === selectedDistrict);
+        }
+        
+        return filtered;
+    }, [cells, selectedGroup, selectedDistrict]);
     
     const stats = useMemo(() => {
         if (reportsToAnalyze.length === 0) return { totalReports: 0, avgAttendance: 0, totalMembers: 0, newMembers: 0, totalVisits: 0 };
@@ -622,10 +656,10 @@ const LittoralDashboard: React.FC<{ user: User }> = ({ user }) => {
         const missingPercent = Math.max(0, 100 - Math.max(bibleStudyPercent, miracleHourPercent, sundayServicePercent));
 
         return [
-            { name: 'Étude Biblique', value: bibleStudyPercent, count: totalBibleStudy, color: '#3B82F6' },
-            { name: 'Heure de Réveil', value: miracleHourPercent, count: totalMiracleHour, color: '#8B5CF6' },
-            { name: 'Culte Dominical', value: sundayServicePercent, count: totalSundayService, color: '#22C55E' },
-            { name: 'Absents', value: missingPercent, count: totalMembers - Math.max(totalBibleStudy, totalMiracleHour, totalSundayService), color: '#EF4444' }
+            { name: 'Étude Biblique', shortName: 'EB', value: bibleStudyPercent, count: totalBibleStudy, color: '#3B82F6' },
+            { name: 'Heure de Réveil', shortName: 'HRM', value: miracleHourPercent, count: totalMiracleHour, color: '#8B5CF6' },
+            { name: 'Culte Dominical', shortName: 'CD', value: sundayServicePercent, count: totalSundayService, color: '#22C55E' },
+            { name: 'Absents', shortName: 'Absents', value: missingPercent, count: totalMembers - Math.max(totalBibleStudy, totalMiracleHour, totalSundayService), color: '#EF4444' }
         ].filter(d => d.value > 0);
     }, [reportsToAnalyze]);
 
@@ -645,6 +679,64 @@ const LittoralDashboard: React.FC<{ user: User }> = ({ user }) => {
         });
         return Object.entries(groups).map(([name, data]) => ({ name, ...data, trend: trendsByGroup[name] || null })).sort((a,b) => b.totalPresent - a.totalPresent);
     }, [reportsToAnalyze, trendsByGroup]);
+
+    // Comparaison des effectifs par groupe/district
+    const attendanceByGroupDistrict = useMemo(() => {
+        const data: { [key: string]: number } = {};
+        reportsToAnalyze.forEach(r => {
+            const key = `${r.group} - ${r.district}`;
+            if (!data[key]) {
+                data[key] = 0;
+            }
+            data[key] += r.totalPresent;
+        });
+        return Object.entries(data)
+            .map(([name, totalPresent]) => ({ name, totalPresent }))
+            .sort((a, b) => b.totalPresent - a.totalPresent)
+            .slice(0, 15); // Limiter à 15 pour la lisibilité
+    }, [reportsToAnalyze]);
+
+    // Statistiques par groupe pour les graphiques
+    const statsByGroup = useMemo(() => {
+        const groups: { [key: string]: { cellsCount: number, newMembers: number, visits: number } } = {};
+        
+        // Compter les cellules par groupe
+        cellsToAnalyze.forEach(cell => {
+            if (!groups[cell.group]) {
+                groups[cell.group] = { cellsCount: 0, newMembers: 0, visits: 0 };
+            }
+            groups[cell.group].cellsCount++;
+        });
+        
+        // Compter les nouveaux membres et visites par groupe
+        reportsToAnalyze.forEach(r => {
+            if (!groups[r.group]) {
+                groups[r.group] = { cellsCount: 0, newMembers: 0, visits: 0 };
+            }
+            groups[r.group].newMembers += r.invitedPeople.length;
+            groups[r.group].visits += r.visitsMade.length;
+        });
+        
+        return Object.entries(groups)
+            .map(([name, data]) => ({ name, ...data }))
+            .sort((a, b) => a.name.localeCompare(b.name));
+    }, [reportsToAnalyze, cellsToAnalyze]);
+
+    // Taux de participation au culte dominical
+    const sundayServiceParticipationRate = useMemo(() => {
+        const totalMembers = reportsToAnalyze.reduce((sum, r) => sum + (r.initialMembersCount || 0), 0);
+        const totalSundayService = reportsToAnalyze.reduce((sum, r) => sum + (r.sundayServiceAttendance || 0), 0);
+        
+        if (totalMembers === 0) return [];
+        
+        const participationPercent = Math.round((totalSundayService / totalMembers) * 100);
+        const nonParticipationPercent = 100 - participationPercent;
+        
+        return [
+            { name: 'Membres ayant participé', value: participationPercent, count: totalSundayService, color: '#22C55E' },
+            { name: 'Membres absents', value: nonParticipationPercent, count: totalMembers - totalSundayService, color: '#EF4444' }
+        ].filter(d => d.value > 0);
+    }, [reportsToAnalyze]);
 
     const trendsByCell = useMemo(() => calculateTrend(reportsToAnalyze, 4, 'cellId', cells), [reportsToAnalyze, cells]);
 
@@ -787,7 +879,24 @@ const LittoralDashboard: React.FC<{ user: User }> = ({ user }) => {
                 pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight, undefined, 'FAST');
             }
             
-            pdf.save("Rapport_Littoral.pdf");
+            // Générer le nom du fichier selon le rôle et la hiérarchie
+            let pdfFileName = "Rapport_Activite";
+            
+            if (user.role === UserRole.NATIONAL_COORDINATOR) {
+                pdfFileName += "_Littoral";
+            } else if (user.role === UserRole.REGIONAL_PASTOR && user.region) {
+                pdfFileName += `_${user.region.replace(/\s+/g, '_')}`;
+            } else if (user.role === UserRole.GROUP_PASTOR && user.group) {
+                pdfFileName += `_Groupe_${user.group.replace(/\s+/g, '_')}`;
+            } else if (user.role === UserRole.DISTRICT_PASTOR && user.district) {
+                pdfFileName += `_District_${user.district.replace(/\s+/g, '_')}`;
+            } else if (user.role === UserRole.CELL_LEADER && user.cellName) {
+                pdfFileName += `_Cellule_${user.cellName.replace(/\s+/g, '_')}`;
+            }
+            
+            pdfFileName += ".pdf";
+            
+            pdf.save(pdfFileName);
             showToast("PDF généré avec succès!", 'success');
         } catch (error) {
             console.error("PDF generation error:", error);
@@ -821,18 +930,121 @@ const LittoralDashboard: React.FC<{ user: User }> = ({ user }) => {
         }
     };
 
-    const dashboardTitle = "Tableau de bord - Littoral";
+    // Générer le titre selon le rôle de l'utilisateur
+    const getDashboardTitle = () => {
+        const isLittoral = user.region === 'Littoral';
+        
+        if (user.role === UserRole.NATIONAL_COORDINATOR) {
+            let title = "Tableau de bord du Coordinateur National - Littoral";
+            
+            // Ajouter les filtres au titre
+            if (selectedDistrict !== 'all') {
+                title += ` - District ${selectedDistrict}`;
+            } else if (selectedGroup !== 'all') {
+                title += ` - Groupe ${selectedGroup}`;
+            }
+            
+            return title;
+        }
+        if (user.role === UserRole.REGIONAL_PASTOR) {
+            return `Tableau de bord du Pasteur Régional - ${user.region}`;
+        }
+        if (user.role === UserRole.GROUP_PASTOR) {
+            const roleTitle = isLittoral ? "Pasteur de Groupe" : "Pasteur de District";
+            return `Tableau de bord du ${roleTitle} - ${user.group}`;
+        }
+        if (user.role === UserRole.DISTRICT_PASTOR) {
+            const roleTitle = isLittoral ? "Pasteur de District" : "Pasteur de Localité";
+            return `Tableau de bord du ${roleTitle} - ${user.district}`;
+        }
+        if (user.role === UserRole.CELL_LEADER) {
+            return `Tableau de bord du Responsable de Cellule - ${user.cellName}`;
+        }
+        return "Tableau de bord - Littoral";
+    };
+
+    const dashboardTitle = getDashboardTitle();
+    
+    // Extraire les listes uniques de groupes et districts pour les filtres
+    const availableGroups = useMemo(() => {
+        const groups = new Set(allReports.filter(r => r.region === 'Littoral').map(r => r.group));
+        return Array.from(groups).sort();
+    }, [allReports]);
+    
+    const availableDistricts = useMemo(() => {
+        const districts = new Set(
+            allReports
+                .filter(r => r.region === 'Littoral' && (selectedGroup === 'all' || r.group === selectedGroup))
+                .map(r => r.district)
+        );
+        return Array.from(districts).sort();
+    }, [allReports, selectedGroup]);
 
     return (
         <div className="space-y-6">
             <div className="bg-white p-6 rounded-xl shadow-md">
                 <div className="flex justify-between items-start">
                     <h2 className="text-2xl font-bold text-gray-800 mb-4">{dashboardTitle}</h2>
-                    <button onClick={() => navigate('/admin')} className="flex items-center space-x-2 text-sm text-blue-600 hover:text-blue-800 font-semibold py-2 px-3 rounded-lg hover:bg-blue-50 transition-colors">
-                        <ChevronLeftIcon className="h-5 w-5" />
-                        <span>Changer de vue</span>
-                    </button>
+                    {user.role === UserRole.NATIONAL_COORDINATOR && (
+                        <button onClick={() => navigate('/admin')} className="flex items-center space-x-2 text-sm text-blue-600 hover:text-blue-800 font-semibold py-2 px-3 rounded-lg hover:bg-blue-50 transition-colors">
+                            <ChevronLeftIcon className="h-5 w-5" />
+                            <span>Changer de vue</span>
+                        </button>
+                    )}
                 </div>
+                
+                {/* Filtres pour le Coordinateur National */}
+                {user.role === UserRole.NATIONAL_COORDINATOR && (
+                    <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                        <h3 className="text-sm font-semibold text-blue-900 mb-3">🔍 Filtrer par :</h3>
+                        <div className="flex flex-col md:flex-row gap-3">
+                            <div className="flex-1">
+                                <label className="block text-xs font-medium text-gray-700 mb-1">Groupe</label>
+                                <select
+                                    value={selectedGroup}
+                                    onChange={(e) => {
+                                        setSelectedGroup(e.target.value);
+                                        setSelectedDistrict('all'); // Réinitialiser le district
+                                    }}
+                                    className="w-full p-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                                >
+                                    <option value="all">Tous les groupes</option>
+                                    {availableGroups.map(group => (
+                                        <option key={group} value={group}>{group}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="flex-1">
+                                <label className="block text-xs font-medium text-gray-700 mb-1">District</label>
+                                <select
+                                    value={selectedDistrict}
+                                    onChange={(e) => setSelectedDistrict(e.target.value)}
+                                    className="w-full p-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                                    disabled={selectedGroup === 'all'}
+                                >
+                                    <option value="all">Tous les districts</option>
+                                    {availableDistricts.map(district => (
+                                        <option key={district} value={district}>{district}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            {(selectedGroup !== 'all' || selectedDistrict !== 'all') && (
+                                <div className="flex items-end">
+                                    <button
+                                        onClick={() => {
+                                            setSelectedGroup('all');
+                                            setSelectedDistrict('all');
+                                        }}
+                                        className="px-3 py-2 text-sm bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+                                    >
+                                        Réinitialiser
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+                
                 <div className="flex flex-col md:flex-row gap-4">
                     <input type="date" value={dateRange.start} onChange={e => setDateRange(d => ({...d, start: e.target.value}))} className="p-2 border rounded-md" />
                     <input type="date" value={dateRange.end} onChange={e => setDateRange(d => ({...d, end: e.target.value}))} className="p-2 border rounded-md" />
@@ -861,7 +1073,10 @@ const LittoralDashboard: React.FC<{ user: User }> = ({ user }) => {
                                     <XAxis dataKey="week" fontSize={12} />
                                     <YAxis />
                                     <Tooltip content={<CustomTooltip />} />
-                                    <Legend />
+                                    <Legend 
+                                        wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }}
+                                        iconSize={8}
+                                    />
                                     <Line type="monotone" dataKey="Présence totale" stroke="#3B82F6" strokeWidth={2} />
                                     <Line type="monotone" dataKey="Nouveaux Invités" stroke="#82ca9d" />
                                 </LineChart>
@@ -875,7 +1090,10 @@ const LittoralDashboard: React.FC<{ user: User }> = ({ user }) => {
                                     <XAxis dataKey="week" fontSize={12} />
                                     <YAxis />
                                     <Tooltip content={<CustomTooltip />} />
-                                    <Legend />
+                                    <Legend 
+                                        wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }}
+                                        iconSize={8}
+                                    />
                                     <Bar name="Étude Biblique" dataKey="Étude Biblique" fill="#3B82F6" />
                                     <Bar name="Heure de Réveil" dataKey="Heure de Réveil" fill="#8B5CF6" />
                                     <Bar name="Culte Dominical" dataKey="Culte Dominical" fill="#22C55E" />
@@ -885,9 +1103,9 @@ const LittoralDashboard: React.FC<{ user: User }> = ({ user }) => {
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-md">
-                            <h3 className="font-semibold text-gray-700 mb-4">Taux de Participation aux Programmes</h3>
-                            <ResponsiveContainer width="100%" height={400}>
+                        <div className="lg:col-span-2 bg-white p-4 md:p-6 rounded-xl shadow-md">
+                            <h3 className="font-semibold text-gray-700 mb-4 text-sm md:text-base">Taux de Participation aux Programmes</h3>
+                            <ResponsiveContainer width="100%" height={300} className="md:h-[400px]">
                                 <PieChart>
                                     <Pie 
                                         data={participationRateData} 
@@ -895,13 +1113,20 @@ const LittoralDashboard: React.FC<{ user: User }> = ({ user }) => {
                                         nameKey="name" 
                                         cx="50%" 
                                         cy="50%" 
-                                        outerRadius={100} 
-                                        label={({ name, value, count }) => `${name}: ${value}% (${count})`}
+                                        outerRadius={80}
+                                        label={({ shortName }: any) => shortName}
+                                        labelLine={true}
                                     >
                                          {participationRateData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
                                     </Pie>
-                                    <Tooltip formatter={(value: number, name: string, props: any) => [`${value}% (${props.payload.count} personnes)`, name]} />
-                                    <Legend />
+                                    <Tooltip 
+                                        formatter={(value: number, name: string, props: any) => [`${value}% (${props.payload.count} personnes)`, name]} 
+                                        contentStyle={{ fontSize: '12px' }}
+                                    />
+                                    <Legend 
+                                        wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }}
+                                        iconSize={8}
+                                    />
                                 </PieChart>
                             </ResponsiveContainer>
                         </div>
@@ -914,6 +1139,91 @@ const LittoralDashboard: React.FC<{ user: User }> = ({ user }) => {
                                     <YAxis />
                                     <Tooltip />
                                     <Bar dataKey="value" fill="#3B82F6" />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+                    
+                    {/* Nouveaux graphiques */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div className="bg-white p-4 md:p-6 rounded-xl shadow-md">
+                            <h3 className="font-semibold text-gray-700 mb-4 text-sm md:text-base">Comparaison des Effectifs par Groupe/District</h3>
+                            <ResponsiveContainer width="100%" height={350} className="md:h-[400px]">
+                                <BarChart data={attendanceByGroupDistrict} layout="vertical" margin={{ top: 5, right: 10, left: 60, bottom: 5 }}>
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis type="number" />
+                                    <YAxis dataKey="name" type="category" width={70} fontSize={10} />
+                                    <Tooltip />
+                                    <Bar dataKey="totalPresent" fill="#3B82F6" name="Total Présents" />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                        
+                        <div className="bg-white p-4 md:p-6 rounded-xl shadow-md">
+                            <h3 className="font-semibold text-gray-700 mb-4 text-sm md:text-base">Participation au Culte Dominical</h3>
+                            <ResponsiveContainer width="100%" height={350} className="md:h-[400px]">
+                                <PieChart>
+                                    <Pie 
+                                        data={sundayServiceParticipationRate} 
+                                        dataKey="value" 
+                                        nameKey="name" 
+                                        cx="50%" 
+                                        cy="50%" 
+                                        outerRadius={80} 
+                                        label={({ value }) => `${value}%`}
+                                        labelLine={false}
+                                    >
+                                         {sundayServiceParticipationRate.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                                    </Pie>
+                                    <Tooltip 
+                                        formatter={(value: number, name: string, props: any) => [`${value}% (${props.payload.count} membres)`, name]} 
+                                        contentStyle={{ fontSize: '12px' }}
+                                    />
+                                    <Legend 
+                                        wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }}
+                                        iconSize={8}
+                                    />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div className="bg-white p-4 md:p-6 rounded-xl shadow-md">
+                            <h3 className="font-semibold text-gray-700 mb-4 text-sm md:text-base">Nombre de Cellules par Groupe</h3>
+                            <ResponsiveContainer width="100%" height={300}>
+                                <BarChart data={statsByGroup}>
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis dataKey="name" fontSize={11} angle={-45} textAnchor="end" height={80} />
+                                    <YAxis />
+                                    <Tooltip />
+                                    <Bar dataKey="cellsCount" fill="#8B5CF6" name="Nombre de Cellules" />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                        
+                        <div className="bg-white p-4 md:p-6 rounded-xl shadow-md">
+                            <h3 className="font-semibold text-gray-700 mb-4 text-sm md:text-base">Nouveaux Membres par Groupe</h3>
+                            <ResponsiveContainer width="100%" height={300}>
+                                <BarChart data={statsByGroup}>
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis dataKey="name" fontSize={11} angle={-45} textAnchor="end" height={80} />
+                                    <YAxis />
+                                    <Tooltip />
+                                    <Bar dataKey="newMembers" fill="#22C55E" name="Nouveaux Membres" />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                        
+                        <div className="bg-white p-4 md:p-6 rounded-xl shadow-md">
+                            <h3 className="font-semibold text-gray-700 mb-4 text-sm md:text-base">Visites Effectuées par Groupe</h3>
+                            <ResponsiveContainer width="100%" height={300}>
+                                <BarChart data={statsByGroup}>
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis dataKey="name" fontSize={11} angle={-45} textAnchor="end" height={80} />
+                                    <YAxis />
+                                    <Tooltip />
+                                    <Bar dataKey="visits" fill="#F59E0B" name="Visites" />
                                 </BarChart>
                             </ResponsiveContainer>
                         </div>
@@ -986,7 +1296,7 @@ const LittoralDashboard: React.FC<{ user: User }> = ({ user }) => {
             <ConfirmationModal isOpen={!!reportToDelete} onClose={() => setReportToDelete(null)} onConfirm={handleConfirmDelete} title="Supprimer le Rapport" message={`Êtes-vous sûr de vouloir supprimer le rapport de ${reportToDelete?.cellName} du ${reportToDelete?.cellDate}?`} isConfirming={isDeleting} />
             <DrilldownDetailModal item={drilldownItem} onClose={() => setDrilldownItem(null)} allReports={allReports} allCells={cells} />
             <div style={{ position: 'fixed', left: '-9999px', top: '0', visibility: 'hidden' }}>
-                 <ReportPDF ref={pdfRef} user={user} stats={stats} dateRange={dateRange} summaryData={summaryByGroup} demographicsData={demographicsData} title="Rapport d'Activité - Littoral" testimonies={reportsToAnalyze.filter(r => r.poignantTestimony)} newMembers={reportsToAnalyze.flatMap(r => r.invitedPeople.map(p => ({...p, cellName: r.cellName, group: r.group, district: r.district})))} />
+                 <ReportPDF ref={pdfRef} user={user} stats={stats} dateRange={dateRange} summaryData={summaryByGroup} demographicsData={demographicsData} title={getDashboardTitle().replace('Tableau de bord', "Rapport d'Activité")} testimonies={reportsToAnalyze.filter(r => r.poignantTestimony)} newMembers={reportsToAnalyze.flatMap(r => r.invitedPeople.map(p => ({...p, cellName: r.cellName, group: r.group, district: r.district})))} />
             </div>
         </div>
     );
@@ -1176,10 +1486,10 @@ const RegionsDashboard: React.FC<{ user: User }> = ({ user }) => {
         const missingPercent = Math.max(0, 100 - Math.max(bibleStudyPercent, miracleHourPercent, sundayServicePercent));
 
         return [
-            { name: 'Étude Biblique', value: bibleStudyPercent, count: totalBibleStudy, color: '#3B82F6' },
-            { name: 'Heure de Réveil', value: miracleHourPercent, count: totalMiracleHour, color: '#8B5CF6' },
-            { name: 'Culte Dominical', value: sundayServicePercent, count: totalSundayService, color: '#22C55E' },
-            { name: 'Absents', value: missingPercent, count: totalMembers - Math.max(totalBibleStudy, totalMiracleHour, totalSundayService), color: '#EF4444' }
+            { name: 'Étude Biblique', shortName: 'EB', value: bibleStudyPercent, count: totalBibleStudy, color: '#3B82F6' },
+            { name: 'Heure de Réveil', shortName: 'HRM', value: miracleHourPercent, count: totalMiracleHour, color: '#8B5CF6' },
+            { name: 'Culte Dominical', shortName: 'CD', value: sundayServicePercent, count: totalSundayService, color: '#22C55E' },
+            { name: 'Absents', shortName: 'Absents', value: missingPercent, count: totalMembers - Math.max(totalBibleStudy, totalMiracleHour, totalSundayService), color: '#EF4444' }
         ].filter(d => d.value > 0);
     }, [reportsToAnalyze]);
     
@@ -1213,17 +1523,91 @@ const RegionsDashboard: React.FC<{ user: User }> = ({ user }) => {
         }).sort((a, b) => (b.trend?.change ?? -Infinity) - (a.trend?.change ?? -Infinity));
     }, [cellsToAnalyze, trendsByCell]);
 
+    // Comparaison des effectifs par groupe/district (adapté selon la vue)
+    const attendanceByGroupDistrict = useMemo(() => {
+        const data: { [key: string]: number } = {};
+        reportsToAnalyze.forEach(r => {
+            const key = groupByKey === 'region' ? r.region : `${r.group} - ${r.district}`;
+            if (!data[key]) {
+                data[key] = 0;
+            }
+            data[key] += r.totalPresent;
+        });
+        return Object.entries(data)
+            .map(([name, totalPresent]) => ({ name, totalPresent }))
+            .sort((a, b) => b.totalPresent - a.totalPresent)
+            .slice(0, 15); // Limiter à 15 pour la lisibilité
+    }, [reportsToAnalyze, groupByKey]);
+
+    // Statistiques par groupe pour les graphiques (adapté selon la vue)
+    const statsByGroup = useMemo(() => {
+        const groups: { [key: string]: { cellsCount: number, newMembers: number, visits: number } } = {};
+        
+        // Compter les cellules par groupe
+        cellsToAnalyze.forEach(cell => {
+            const key = groupByKey === 'region' ? cell.region : cell.group;
+            if (!groups[key]) {
+                groups[key] = { cellsCount: 0, newMembers: 0, visits: 0 };
+            }
+            groups[key].cellsCount++;
+        });
+        
+        // Compter les nouveaux membres et visites par groupe
+        reportsToAnalyze.forEach(r => {
+            const key = groupByKey === 'region' ? r.region : r.group;
+            if (!groups[key]) {
+                groups[key] = { cellsCount: 0, newMembers: 0, visits: 0 };
+            }
+            groups[key].newMembers += r.invitedPeople.length;
+            groups[key].visits += r.visitsMade.length;
+        });
+        
+        return Object.entries(groups)
+            .map(([name, data]) => ({ name, ...data }))
+            .sort((a, b) => a.name.localeCompare(b.name));
+    }, [reportsToAnalyze, cellsToAnalyze, groupByKey]);
+
+    // Taux de participation au culte dominical
+    const sundayServiceParticipationRate = useMemo(() => {
+        const totalMembers = reportsToAnalyze.reduce((sum, r) => sum + (r.initialMembersCount || 0), 0);
+        const totalSundayService = reportsToAnalyze.reduce((sum, r) => sum + (r.sundayServiceAttendance || 0), 0);
+        
+        if (totalMembers === 0) return [];
+        
+        const participationPercent = Math.round((totalSundayService / totalMembers) * 100);
+        const nonParticipationPercent = 100 - participationPercent;
+        
+        return [
+            { name: 'Membres ayant participé', value: participationPercent, count: totalSundayService, color: '#22C55E' },
+            { name: 'Membres absents', value: nonParticipationPercent, count: totalMembers - totalSundayService, color: '#EF4444' }
+        ].filter(d => d.value > 0);
+    }, [reportsToAnalyze]);
+
     const paginatedReports = useMemo(() => {
         return reportsToAnalyze.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
     }, [reportsToAnalyze, currentPage]);
 
     const getDashboardTitle = () => {
-        if (isCoordinator) {
-            return regionFilter === 'all' ? "Tableau de bord - Autres Régions" : `Tableau de bord - Région ${regionFilter}`;
+        // Déterminer le titre du rôle selon la région
+        const isLittoral = user.region === 'Littoral';
+        
+        if (user.role === UserRole.NATIONAL_COORDINATOR) {
+            return "Tableau de bord du Coordinateur National";
         }
-        if (user.role === UserRole.REGIONAL_PASTOR) return `Tableau de bord - Région ${user.region}`;
-        if (user.role === UserRole.GROUP_PASTOR) return `Tableau de bord - ${user.group}`;
-        if (user.role === UserRole.DISTRICT_PASTOR) return `Tableau de bord - ${user.district}`;
+        if (user.role === UserRole.REGIONAL_PASTOR) {
+            return `Tableau de bord du Pasteur Régional - ${user.region}`;
+        }
+        if (user.role === UserRole.GROUP_PASTOR) {
+            const roleTitle = isLittoral ? "Pasteur de Groupe" : "Pasteur de District";
+            return `Tableau de bord du ${roleTitle} - ${user.group}`;
+        }
+        if (user.role === UserRole.DISTRICT_PASTOR) {
+            const roleTitle = isLittoral ? "Pasteur de District" : "Pasteur de Localité";
+            return `Tableau de bord du ${roleTitle} - ${user.district}`;
+        }
+        if (user.role === UserRole.CELL_LEADER) {
+            return `Tableau de bord du Responsable de Cellule - ${user.cellName}`;
+        }
         return "Tableau de bord";
     };
     
@@ -1352,7 +1736,24 @@ const RegionsDashboard: React.FC<{ user: User }> = ({ user }) => {
                 pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight, undefined, 'FAST');
             }
             
-            pdf.save("Rapport_Regions.pdf");
+            // Générer le nom du fichier selon le rôle et la hiérarchie
+            let pdfFileName = "Rapport_Activite";
+            
+            if (user.role === UserRole.NATIONAL_COORDINATOR) {
+                pdfFileName += "_Regions";
+            } else if (user.role === UserRole.REGIONAL_PASTOR && user.region) {
+                pdfFileName += `_${user.region.replace(/\s+/g, '_')}`;
+            } else if (user.role === UserRole.GROUP_PASTOR && user.group) {
+                pdfFileName += `_Groupe_${user.group.replace(/\s+/g, '_')}`;
+            } else if (user.role === UserRole.DISTRICT_PASTOR && user.district) {
+                pdfFileName += `_District_${user.district.replace(/\s+/g, '_')}`;
+            } else if (user.role === UserRole.CELL_LEADER && user.cellName) {
+                pdfFileName += `_Cellule_${user.cellName.replace(/\s+/g, '_')}`;
+            }
+            
+            pdfFileName += ".pdf";
+            
+            pdf.save(pdfFileName);
             showToast("PDF généré avec succès!", 'success');
         } catch (error) {
             console.error("PDF generation error:", error);
@@ -1432,7 +1833,10 @@ const RegionsDashboard: React.FC<{ user: User }> = ({ user }) => {
                                     <XAxis dataKey="week" fontSize={12} />
                                     <YAxis />
                                     <Tooltip content={<CustomTooltip />} />
-                                    <Legend />
+                                    <Legend 
+                                        wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }}
+                                        iconSize={8}
+                                    />
                                     <Line type="monotone" dataKey="Présence totale" stroke="#3B82F6" strokeWidth={2} />
                                     <Line type="monotone" dataKey="Nouveaux Invités" stroke="#82ca9d" />
                                 </LineChart>
@@ -1446,7 +1850,10 @@ const RegionsDashboard: React.FC<{ user: User }> = ({ user }) => {
                                     <XAxis dataKey="week" fontSize={12} />
                                     <YAxis />
                                     <Tooltip content={<CustomTooltip />} />
-                                    <Legend />
+                                    <Legend 
+                                        wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }}
+                                        iconSize={8}
+                                    />
                                     <Bar name="Étude Biblique" dataKey="Étude Biblique" fill="#3B82F6" />
                                     <Bar name="Heure de Réveil" dataKey="Heure de Réveil" fill="#8B5CF6" />
                                     <Bar name="Culte Dominical" dataKey="Culte Dominical" fill="#22C55E" />
@@ -1456,9 +1863,9 @@ const RegionsDashboard: React.FC<{ user: User }> = ({ user }) => {
                     </div>
 
                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-md">
-                            <h3 className="font-semibold text-gray-700 mb-4">Taux de Participation aux Programmes</h3>
-                            <ResponsiveContainer width="100%" height={400}>
+                        <div className="lg:col-span-2 bg-white p-4 md:p-6 rounded-xl shadow-md">
+                            <h3 className="font-semibold text-gray-700 mb-4 text-sm md:text-base">Taux de Participation aux Programmes</h3>
+                            <ResponsiveContainer width="100%" height={300} className="md:h-[400px]">
                                 <PieChart>
                                     <Pie 
                                         data={participationRateData} 
@@ -1466,13 +1873,20 @@ const RegionsDashboard: React.FC<{ user: User }> = ({ user }) => {
                                         nameKey="name" 
                                         cx="50%" 
                                         cy="50%" 
-                                        outerRadius={100} 
-                                        label={({ name, value, count }) => `${name}: ${value}% (${count})`}
+                                        outerRadius={80}
+                                        label={({ shortName }: any) => shortName}
+                                        labelLine={true}
                                     >
                                          {participationRateData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
                                     </Pie>
-                                    <Tooltip formatter={(value: number, name: string, props: any) => [`${value}% (${props.payload.count} personnes)`, name]} />
-                                    <Legend />
+                                    <Tooltip 
+                                        formatter={(value: number, name: string, props: any) => [`${value}% (${props.payload.count} personnes)`, name]} 
+                                        contentStyle={{ fontSize: '12px' }}
+                                    />
+                                    <Legend 
+                                        wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }}
+                                        iconSize={8}
+                                    />
                                 </PieChart>
                             </ResponsiveContainer>
                         </div>
@@ -1489,6 +1903,100 @@ const RegionsDashboard: React.FC<{ user: User }> = ({ user }) => {
                             </ResponsiveContainer>
                         </div>
                     </div>
+                    
+                    {/* Nouveaux graphiques */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div className="bg-white p-6 rounded-xl shadow-md">
+                            <h3 className="font-semibold text-gray-700 mb-4">
+                                {groupByKey === 'region' ? 'Comparaison des Effectifs par Région' : 'Comparaison des Effectifs par District/Localité'}
+                            </h3>
+                            <ResponsiveContainer width="100%" height={400}>
+                                <BarChart data={attendanceByGroupDistrict} layout="vertical" margin={{ top: 5, right: 10, left: 60, bottom: 5 }}>
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis type="number" />
+                                    <YAxis dataKey="name" type="category" width={70} fontSize={10} />
+                                    <Tooltip />
+                                    <Bar dataKey="totalPresent" fill="#3B82F6" name="Total Présents" />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                        
+                        <div className="bg-white p-4 md:p-6 rounded-xl shadow-md">
+                            <h3 className="font-semibold text-gray-700 mb-4 text-sm md:text-base">Participation au Culte Dominical</h3>
+                            <ResponsiveContainer width="100%" height={350} className="md:h-[400px]">
+                                <PieChart>
+                                    <Pie 
+                                        data={sundayServiceParticipationRate} 
+                                        dataKey="value" 
+                                        nameKey="name" 
+                                        cx="50%" 
+                                        cy="50%" 
+                                        outerRadius={80} 
+                                        label={({ value }) => `${value}%`}
+                                        labelLine={false}
+                                    >
+                                         {sundayServiceParticipationRate.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                                    </Pie>
+                                    <Tooltip 
+                                        formatter={(value: number, name: string, props: any) => [`${value}% (${props.payload.count} membres)`, name]} 
+                                        contentStyle={{ fontSize: '12px' }}
+                                    />
+                                    <Legend 
+                                        wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }}
+                                        iconSize={8}
+                                    />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div className="bg-white p-6 rounded-xl shadow-md">
+                            <h3 className="font-semibold text-gray-700 mb-4">
+                                {groupByKey === 'region' ? 'Nombre de Cellules par Région' : 'Nombre de Cellules par District'}
+                            </h3>
+                            <ResponsiveContainer width="100%" height={300}>
+                                <BarChart data={statsByGroup}>
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis dataKey="name" fontSize={11} angle={-45} textAnchor="end" height={80} />
+                                    <YAxis />
+                                    <Tooltip />
+                                    <Bar dataKey="cellsCount" fill="#8B5CF6" name="Nombre de Cellules" />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                        
+                        <div className="bg-white p-6 rounded-xl shadow-md">
+                            <h3 className="font-semibold text-gray-700 mb-4">
+                                {groupByKey === 'region' ? 'Nouveaux Membres par Région' : 'Nouveaux Membres par District'}
+                            </h3>
+                            <ResponsiveContainer width="100%" height={300}>
+                                <BarChart data={statsByGroup}>
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis dataKey="name" fontSize={11} angle={-45} textAnchor="end" height={80} />
+                                    <YAxis />
+                                    <Tooltip />
+                                    <Bar dataKey="newMembers" fill="#22C55E" name="Nouveaux Membres" />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                        
+                        <div className="bg-white p-6 rounded-xl shadow-md">
+                            <h3 className="font-semibold text-gray-700 mb-4">
+                                {groupByKey === 'region' ? 'Visites Effectuées par Région' : 'Visites Effectuées par District'}
+                            </h3>
+                            <ResponsiveContainer width="100%" height={300}>
+                                <BarChart data={statsByGroup}>
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis dataKey="name" fontSize={11} angle={-45} textAnchor="end" height={80} />
+                                    <YAxis />
+                                    <Tooltip />
+                                    <Bar dataKey="visits" fill="#F59E0B" name="Visites" />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+                    
                      <SummaryTable title={summaryTitle} data={summaryData} headers={[
                         { key: 'name', label: summaryHeaderLabel },
                         { key: 'reportsCount', label: 'Rapports' },
@@ -1556,7 +2064,7 @@ const RegionsDashboard: React.FC<{ user: User }> = ({ user }) => {
             <ConfirmationModal isOpen={!!reportToDelete} onClose={() => setReportToDelete(null)} onConfirm={handleConfirmDelete} title="Supprimer le Rapport" message={`Êtes-vous sûr de vouloir supprimer le rapport de ${reportToDelete?.cellName} du ${reportToDelete?.cellDate}?`} isConfirming={isDeleting} />
              <DrilldownDetailModal item={drilldownItem} onClose={() => setDrilldownItem(null)} allReports={allReports} allCells={cells} />
              <div style={{ position: 'fixed', left: '-9999px', top: '0', visibility: 'hidden' }}>
-                 <ReportPDF ref={pdfRef} user={user} stats={stats} dateRange={dateRange} summaryData={summaryData} demographicsData={demographicsData} title={getDashboardTitle()} testimonies={reportsToAnalyze.filter(r => r.poignantTestimony)} newMembers={reportsToAnalyze.flatMap(r => r.invitedPeople.map(p => ({...p, cellName: r.cellName, group: r.group, district: r.district})))} />
+                 <ReportPDF ref={pdfRef} user={user} stats={stats} dateRange={dateRange} summaryData={summaryData} demographicsData={demographicsData} title={getDashboardTitle().replace('Tableau de bord', "Rapport d'Activité")} testimonies={reportsToAnalyze.filter(r => r.poignantTestimony)} newMembers={reportsToAnalyze.flatMap(r => r.invitedPeople.map(p => ({...p, cellName: r.cellName, group: r.group, district: r.district})))} />
             </div>
         </div>
     );

@@ -17,16 +17,20 @@ const CellGrowthStatsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [filterColor, setFilterColor] = useState<'all' | 'green' | 'yellow' | 'red' | 'gray'>('all');
   
-  // Filtre par mois/année
+  // Type de période : mois, trimestre ou année
+  const [periodType, setPeriodType] = useState<'month' | 'quarter' | 'year'>('month');
+  
+  // Filtre par mois/trimestre/année
   const currentDate = new Date();
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth() + 1); // 1-12
+  const [selectedQuarter, setSelectedQuarter] = useState(Math.floor(currentDate.getMonth() / 3) + 1); // 1-4
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
 
   useEffect(() => {
     if (user) {
       loadData();
     }
-  }, [user, selectedMonth, selectedYear]);
+  }, [user, periodType, selectedMonth, selectedQuarter, selectedYear]);
 
   const loadData = async () => {
     if (!user) return;
@@ -37,32 +41,59 @@ const CellGrowthStatsPage: React.FC = () => {
       const cellsData = await api.getCellsForUser(user);
       setCells(cellsData);
 
-      // Calculer les dates de début et fin du mois sélectionné
-      const startDate = new Date(selectedYear, selectedMonth - 1, 1);
-      const endDate = new Date(selectedYear, selectedMonth, 0); // Dernier jour du mois
+      let startDate: Date, endDate: Date, prevStartDate: Date, prevEndDate: Date;
+
+      if (periodType === 'month') {
+        // Période actuelle : mois sélectionné
+        startDate = new Date(selectedYear, selectedMonth - 1, 1);
+        endDate = new Date(selectedYear, selectedMonth, 0); // Dernier jour du mois
+        
+        // Période précédente : mois précédent
+        prevStartDate = new Date(selectedYear, selectedMonth - 2, 1);
+        prevEndDate = new Date(selectedYear, selectedMonth - 1, 0);
+      } else if (periodType === 'quarter') {
+        // Période actuelle : trimestre sélectionné
+        const quarterStartMonth = (selectedQuarter - 1) * 3;
+        startDate = new Date(selectedYear, quarterStartMonth, 1);
+        endDate = new Date(selectedYear, quarterStartMonth + 3, 0); // Dernier jour du trimestre
+        
+        // Période précédente : trimestre précédent
+        const prevQuarterStartMonth = quarterStartMonth - 3;
+        if (prevQuarterStartMonth < 0) {
+          // Trimestre précédent est dans l'année précédente
+          prevStartDate = new Date(selectedYear - 1, 9, 1); // Q4 de l'année précédente
+          prevEndDate = new Date(selectedYear - 1, 12, 0);
+        } else {
+          prevStartDate = new Date(selectedYear, prevQuarterStartMonth, 1);
+          prevEndDate = new Date(selectedYear, prevQuarterStartMonth + 3, 0);
+        }
+      } else {
+        // Période actuelle : année sélectionnée
+        startDate = new Date(selectedYear, 0, 1);
+        endDate = new Date(selectedYear, 11, 31);
+        
+        // Période précédente : année précédente
+        prevStartDate = new Date(selectedYear - 1, 0, 1);
+        prevEndDate = new Date(selectedYear - 1, 11, 31);
+      }
       
-      // Charger les rapports du mois sélectionné ET du mois précédent (pour comparaison)
-      const prevMonthStart = new Date(selectedYear, selectedMonth - 2, 1);
-      const prevMonthEnd = new Date(selectedYear, selectedMonth - 1, 0);
-      
-      const [currentMonthReports, prevMonthReports] = await Promise.all([
+      const [currentPeriodReports, prevPeriodReports] = await Promise.all([
         api.getReports(user, {
           start: startDate.toISOString().split('T')[0],
           end: endDate.toISOString().split('T')[0],
         }),
         api.getReports(user, {
-          start: prevMonthStart.toISOString().split('T')[0],
-          end: prevMonthEnd.toISOString().split('T')[0],
+          start: prevStartDate.toISOString().split('T')[0],
+          end: prevEndDate.toISOString().split('T')[0],
         })
       ]);
       
-      console.log('📋 Rapports du mois actuel:', currentMonthReports.length);
-      console.log('📋 Rapports du mois précédent:', prevMonthReports.length);
+      console.log(`📋 Rapports de la période actuelle (${periodType}):`, currentPeriodReports.length);
+      console.log(`📋 Rapports de la période précédente (${periodType}):`, prevPeriodReports.length);
       
       // Stocker les deux ensembles de rapports
-      setReports(currentMonthReports);
-      // On va aussi stocker les rapports du mois précédent dans un state séparé
-      setPreviousMonthReports(prevMonthReports);
+      setReports(currentPeriodReports);
+      setPreviousMonthReports(prevPeriodReports);
     } catch (error: any) {
       showToast(error.message || 'Erreur lors du chargement des données', 'error');
     } finally {
@@ -107,16 +138,16 @@ const CellGrowthStatsPage: React.FC = () => {
     return total / reports.length;
   };
 
-  // Calculer la croissance en comparant les moyennes mensuelles
-  const calculateMonthlyGrowth = (cell: Cell) => {
-    const currentMonthReports = getCurrentMonthReports(cell);
-    const previousMonthReports = getPreviousMonthReports(cell);
+  // Calculer la croissance en comparant les périodes (mois, trimestre, année)
+  const calculatePeriodGrowth = (cell: Cell) => {
+    const currentPeriodReports = getCurrentMonthReports(cell);
+    const previousPeriodReports = getPreviousMonthReports(cell);
 
-    // Si pas de rapport ce mois-ci
-    if (currentMonthReports.length === 0) {
+    // Si pas de rapport pour la période actuelle
+    if (currentPeriodReports.length === 0) {
       return {
         color: 'gray' as const,
-        label: 'Pas de rapport ce mois',
+        label: 'Pas de rapport',
         percentage: null,
         currentAverage: 0,
         previousAverage: 0,
@@ -125,22 +156,22 @@ const CellGrowthStatsPage: React.FC = () => {
       };
     }
 
-    const currentAverage = calculateAverageMembers(currentMonthReports);
+    const currentAverage = calculateAverageMembers(currentPeriodReports);
 
-    // Si pas de rapport le mois précédent, on ne peut pas comparer
-    if (previousMonthReports.length === 0) {
+    // Si pas de rapport pour la période précédente, on ne peut pas comparer
+    if (previousPeriodReports.length === 0) {
       return {
         color: 'gray' as const,
-        label: 'Premier mois',
+        label: 'Première période',
         percentage: null,
         currentAverage: Math.round(currentAverage * 10) / 10,
         previousAverage: 0,
-        currentReportsCount: currentMonthReports.length,
+        currentReportsCount: currentPeriodReports.length,
         previousReportsCount: 0,
       };
     }
 
-    const previousAverage = calculateAverageMembers(previousMonthReports);
+    const previousAverage = calculateAverageMembers(previousPeriodReports);
 
     // Éviter la division par zéro
     if (previousAverage === 0) {
@@ -150,30 +181,30 @@ const CellGrowthStatsPage: React.FC = () => {
         percentage: null,
         currentAverage: Math.round(currentAverage * 10) / 10,
         previousAverage: 0,
-        currentReportsCount: currentMonthReports.length,
-        previousReportsCount: previousMonthReports.length,
+        currentReportsCount: currentPeriodReports.length,
+        previousReportsCount: previousPeriodReports.length,
       };
     }
 
     // Calculer le pourcentage d'évolution basé sur les moyennes
     const growthPercentage = ((currentAverage - previousAverage) / previousAverage) * 100;
 
-    // Déterminer la couleur et le label
+    // Déterminer la couleur et le label selon les nouveaux critères
     let color: 'green' | 'yellow' | 'red';
     let label: string;
 
-    if (growthPercentage >= 10) {
+    if (currentAverage > previousAverage) {
+      // 🟢 CROISSANCE : Le nombre sur liste augmente
       color = 'green';
-      label = 'Excellente croissance';
-    } else if (growthPercentage >= 0) {
+      label = 'En croissance';
+    } else if (currentAverage === previousAverage) {
+      // 🟡 STATIQUE : Le nombre sur liste reste identique
       color = 'yellow';
-      label = 'Croissance modérée';
-    } else if (growthPercentage >= -10) {
-      color = 'yellow';
-      label = 'Légère baisse';
+      label = 'Statique';
     } else {
+      // 🔴 DÉCROISSANCE : Le nombre sur liste diminue
       color = 'red';
-      label = 'Baisse critique';
+      label = 'En décroissance';
     }
 
     return {
@@ -182,30 +213,30 @@ const CellGrowthStatsPage: React.FC = () => {
       percentage: Math.round(growthPercentage * 10) / 10,
       currentAverage: Math.round(currentAverage * 10) / 10,
       previousAverage: Math.round(previousAverage * 10) / 10,
-      currentReportsCount: currentMonthReports.length,
-      previousReportsCount: previousMonthReports.length,
+      currentReportsCount: currentPeriodReports.length,
+      previousReportsCount: previousPeriodReports.length,
     };
   };
 
   // Calculer les statistiques globales
   const stats = React.useMemo(() => {
     const green = cells.filter(cell => {
-      const growth = calculateMonthlyGrowth(cell);
+      const growth = calculatePeriodGrowth(cell);
       return growth.color === 'green';
     }).length;
 
     const yellow = cells.filter(cell => {
-      const growth = calculateMonthlyGrowth(cell);
+      const growth = calculatePeriodGrowth(cell);
       return growth.color === 'yellow';
     }).length;
 
     const red = cells.filter(cell => {
-      const growth = calculateMonthlyGrowth(cell);
+      const growth = calculatePeriodGrowth(cell);
       return growth.color === 'red';
     }).length;
 
     const gray = cells.filter(cell => {
-      const growth = calculateMonthlyGrowth(cell);
+      const growth = calculatePeriodGrowth(cell);
       return growth.color === 'gray';
     }).length;
 
@@ -217,7 +248,7 @@ const CellGrowthStatsPage: React.FC = () => {
     if (filterColor === 'all') return cells;
     
     return cells.filter(cell => {
-      const growth = calculateMonthlyGrowth(cell);
+      const growth = calculatePeriodGrowth(cell);
       return growth.color === filterColor;
     });
   }, [cells, reports, previousMonthReports, filterColor]);
@@ -253,27 +284,68 @@ const CellGrowthStatsPage: React.FC = () => {
     <div className="max-w-7xl mx-auto">
       <h1 className="text-3xl font-bold text-gray-800 mb-6">{pageTitle}</h1>
 
-      {/* Filtres par mois et année */}
+      {/* Filtres par période */}
       <div className="bg-white p-4 rounded-lg shadow-md mb-6">
         <div className="flex flex-wrap items-center gap-4">
+          {/* Sélecteur de type de période */}
           <div className="flex items-center gap-2">
-            <label htmlFor="month-select" className="text-sm font-medium text-gray-700">
-              Mois :
+            <label htmlFor="period-type-select" className="text-sm font-medium text-gray-700">
+              Analyser par :
             </label>
             <select
-              id="month-select"
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(Number(e.target.value))}
-              className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+              id="period-type-select"
+              value={periodType}
+              onChange={(e) => setPeriodType(e.target.value as 'month' | 'quarter' | 'year')}
+              className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 font-semibold"
             >
-              {months.map((month) => (
-                <option key={month.value} value={month.value}>
-                  {month.label}
-                </option>
-              ))}
+              <option value="month">📅 Mois</option>
+              <option value="quarter">📊 Trimestre</option>
+              <option value="year">📆 Année</option>
             </select>
           </div>
 
+          {/* Sélecteur de mois (visible uniquement si periodType === 'month') */}
+          {periodType === 'month' && (
+            <div className="flex items-center gap-2">
+              <label htmlFor="month-select" className="text-sm font-medium text-gray-700">
+                Mois :
+              </label>
+              <select
+                id="month-select"
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(Number(e.target.value))}
+                className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+              >
+                {months.map((month) => (
+                  <option key={month.value} value={month.value}>
+                    {month.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Sélecteur de trimestre (visible uniquement si periodType === 'quarter') */}
+          {periodType === 'quarter' && (
+            <div className="flex items-center gap-2">
+              <label htmlFor="quarter-select" className="text-sm font-medium text-gray-700">
+                Trimestre :
+              </label>
+              <select
+                id="quarter-select"
+                value={selectedQuarter}
+                onChange={(e) => setSelectedQuarter(Number(e.target.value))}
+                className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value={1}>T1 (Jan-Mar)</option>
+                <option value={2}>T2 (Avr-Juin)</option>
+                <option value={3}>T3 (Juil-Sep)</option>
+                <option value={4}>T4 (Oct-Déc)</option>
+              </select>
+            </div>
+          )}
+
+          {/* Sélecteur d'année (toujours visible) */}
           <div className="flex items-center gap-2">
             <label htmlFor="year-select" className="text-sm font-medium text-gray-700">
               Année :
@@ -292,8 +364,15 @@ const CellGrowthStatsPage: React.FC = () => {
             </select>
           </div>
 
-          <div className="text-sm text-gray-600">
-            📊 Période : {months.find(m => m.value === selectedMonth)?.label} {selectedYear}
+          {/* Affichage de la période sélectionnée */}
+          <div className="text-sm text-gray-600 font-medium">
+            📊 Période : {
+              periodType === 'month' 
+                ? `${months.find(m => m.value === selectedMonth)?.label} ${selectedYear}`
+                : periodType === 'quarter'
+                ? `T${selectedQuarter} ${selectedYear}`
+                : `${selectedYear}`
+            }
           </div>
         </div>
       </div>
@@ -317,7 +396,7 @@ const CellGrowthStatsPage: React.FC = () => {
           onClick={() => setFilterColor('green')}
         >
           <div className="text-2xl font-bold text-green-700">📈 {stats.green}</div>
-          <div className="text-sm text-green-600">Excellente croissance</div>
+          <div className="text-sm text-green-600">En croissance</div>
         </div>
 
         <div 
@@ -327,7 +406,7 @@ const CellGrowthStatsPage: React.FC = () => {
           onClick={() => setFilterColor('yellow')}
         >
           <div className="text-2xl font-bold text-yellow-700">➡️ {stats.yellow}</div>
-          <div className="text-sm text-yellow-600">Croissance modérée</div>
+          <div className="text-sm text-yellow-600">Statique</div>
         </div>
 
         <div 
@@ -337,7 +416,7 @@ const CellGrowthStatsPage: React.FC = () => {
           onClick={() => setFilterColor('red')}
         >
           <div className="text-2xl font-bold text-red-700">📉 {stats.red}</div>
-          <div className="text-sm text-red-600">Baisse critique</div>
+          <div className="text-sm text-red-600">En décroissance</div>
         </div>
 
         <div 
@@ -353,15 +432,21 @@ const CellGrowthStatsPage: React.FC = () => {
 
       {/* Légende */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-        <h3 className="font-semibold text-blue-900 mb-2">📊 Critères d'évaluation (Comparaison mensuelle) :</h3>
+        <h3 className="font-semibold text-blue-900 mb-2">
+          📊 Critères d'évaluation ({
+            periodType === 'month' ? 'Comparaison mensuelle' :
+            periodType === 'quarter' ? 'Comparaison trimestrielle' :
+            'Comparaison annuelle'
+          }) :
+        </h3>
         <ul className="text-sm text-blue-800 space-y-1">
-          <li><strong>📈 Vert (Excellente croissance)</strong> : Augmentation ≥ 10% de la moyenne mensuelle</li>
-          <li><strong>➡️ Jaune (Croissance modérée/Légère baisse)</strong> : Variation entre -10% et +10%</li>
-          <li><strong>📉 Rouge (Baisse critique)</strong> : Diminution &gt; 10% de la moyenne mensuelle</li>
-          <li><strong>❓ Gris (Non évalué)</strong> : Pas de rapports ou données insuffisantes</li>
+          <li><strong>📈 Vert (En croissance)</strong> : Le nombre de membres sur liste augmente par rapport à la période précédente</li>
+          <li><strong>➡️ Jaune (Statique)</strong> : Le nombre de membres sur liste reste identique entre les deux périodes</li>
+          <li><strong>📉 Rouge (En décroissance)</strong> : Le nombre de membres sur liste diminue par rapport à la période précédente</li>
+          <li><strong>❓ Gris (Non évalué)</strong> : Pas de rapports ou données insuffisantes pour comparer</li>
         </ul>
         <p className="text-xs text-blue-700 mt-2">
-          💡 La moyenne est calculée sur tous les rapports du mois (tous les dimanches)
+          💡 La moyenne est calculée sur tous les rapports de la période sélectionnée
         </p>
       </div>
 
@@ -376,7 +461,7 @@ const CellGrowthStatsPage: React.FC = () => {
         ) : (
           <div className="space-y-4">
             {filteredCells.map((cell) => {
-              const growth = calculateMonthlyGrowth(cell);
+              const growth = calculatePeriodGrowth(cell);
               const colorClasses = {
                 green: { bg: 'bg-green-100', text: 'text-green-800', border: 'border-green-300' },
                 yellow: { bg: 'bg-yellow-100', text: 'text-yellow-800', border: 'border-yellow-300' },
@@ -404,7 +489,9 @@ const CellGrowthStatsPage: React.FC = () => {
                   <div className={`p-3 rounded-lg border ${colorClasses.bg} ${colorClasses.border}`}>
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
-                        <span className="text-gray-600">Mois actuel :</span>
+                        <span className="text-gray-600">
+                          {periodType === 'month' ? 'Mois actuel' : periodType === 'quarter' ? 'Trimestre actuel' : 'Année actuelle'} :
+                        </span>
                         <div className={`text-lg font-bold ${colorClasses.text}`}>
                           {growth.currentAverage} membres (moy.)
                         </div>
@@ -413,7 +500,9 @@ const CellGrowthStatsPage: React.FC = () => {
                         </span>
                       </div>
                       <div>
-                        <span className="text-gray-600">Mois précédent :</span>
+                        <span className="text-gray-600">
+                          {periodType === 'month' ? 'Mois précédent' : periodType === 'quarter' ? 'Trimestre précédent' : 'Année précédente'} :
+                        </span>
                         <div className={`text-lg font-bold ${colorClasses.text}`}>
                           {growth.previousAverage} membres (moy.)
                         </div>
