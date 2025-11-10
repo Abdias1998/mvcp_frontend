@@ -377,53 +377,65 @@ const CellGrowthStatsPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Message informatif */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+        <p className="text-sm text-blue-800">
+          💡 <strong>Astuce :</strong> Cliquez sur une carte ci-dessous pour filtrer les cellules par statut de croissance.
+        </p>
+      </div>
+
       {/* Statistiques globales */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
         <div 
-          className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
-            filterColor === 'all' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white hover:border-blue-300'
+          className={`p-4 rounded-lg border-2 cursor-pointer transition-all transform hover:scale-105 ${
+            filterColor === 'all' ? 'border-blue-500 bg-blue-50 shadow-lg' : 'border-gray-200 bg-white hover:border-blue-300 hover:shadow-md'
           }`}
           onClick={() => setFilterColor('all')}
+          title="Cliquer pour afficher toutes les cellules"
         >
           <div className="text-2xl font-bold text-gray-800">{stats.total}</div>
           <div className="text-sm text-gray-600">Total cellules</div>
         </div>
 
         <div 
-          className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
-            filterColor === 'green' ? 'border-green-500 bg-green-50' : 'border-green-200 bg-white hover:border-green-300'
+          className={`p-4 rounded-lg border-2 cursor-pointer transition-all transform hover:scale-105 ${
+            filterColor === 'green' ? 'border-green-500 bg-green-50 shadow-lg' : 'border-green-200 bg-white hover:border-green-300 hover:shadow-md'
           }`}
           onClick={() => setFilterColor('green')}
+          title="Cliquer pour afficher uniquement les cellules en croissance"
         >
           <div className="text-2xl font-bold text-green-700">📈 {stats.green}</div>
           <div className="text-sm text-green-600">En croissance</div>
         </div>
 
         <div 
-          className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
-            filterColor === 'yellow' ? 'border-yellow-500 bg-yellow-50' : 'border-yellow-200 bg-white hover:border-yellow-300'
+          className={`p-4 rounded-lg border-2 cursor-pointer transition-all transform hover:scale-105 ${
+            filterColor === 'yellow' ? 'border-yellow-500 bg-yellow-50 shadow-lg' : 'border-yellow-200 bg-white hover:border-yellow-300 hover:shadow-md'
           }`}
           onClick={() => setFilterColor('yellow')}
+          title="Cliquer pour afficher uniquement les cellules statiques"
         >
           <div className="text-2xl font-bold text-yellow-700">➡️ {stats.yellow}</div>
           <div className="text-sm text-yellow-600">Statique</div>
         </div>
 
         <div 
-          className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
-            filterColor === 'red' ? 'border-red-500 bg-red-50' : 'border-red-200 bg-white hover:border-red-300'
+          className={`p-4 rounded-lg border-2 cursor-pointer transition-all transform hover:scale-105 ${
+            filterColor === 'red' ? 'border-red-500 bg-red-50 shadow-lg' : 'border-red-200 bg-white hover:border-red-300 hover:shadow-md'
           }`}
           onClick={() => setFilterColor('red')}
+          title="Cliquer pour afficher uniquement les cellules en décroissance"
         >
           <div className="text-2xl font-bold text-red-700">📉 {stats.red}</div>
           <div className="text-sm text-red-600">En décroissance</div>
         </div>
 
         <div 
-          className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
-            filterColor === 'gray' ? 'border-gray-500 bg-gray-50' : 'border-gray-200 bg-white hover:border-gray-300'
+          className={`p-4 rounded-lg border-2 cursor-pointer transition-all transform hover:scale-105 ${
+            filterColor === 'gray' ? 'border-gray-500 bg-gray-50 shadow-lg' : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-md'
           }`}
           onClick={() => setFilterColor('gray')}
+          title="Cliquer pour afficher uniquement les cellules non évaluées"
         >
           <div className="text-2xl font-bold text-gray-700">❓ {stats.gray}</div>
           <div className="text-sm text-gray-600">Non évalué</div>
@@ -452,9 +464,29 @@ const CellGrowthStatsPage: React.FC = () => {
 
       {/* Liste des cellules */}
       <div className="bg-white rounded-lg shadow-md p-6">
-        <h2 className="text-xl font-bold text-gray-800 mb-4">
-          {filterColor === 'all' ? 'Toutes les cellules' : `Cellules filtrées (${filteredCells.length})`}
-        </h2>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold text-gray-800">
+            {filterColor === 'all' 
+              ? `Toutes les cellules (${filteredCells.length})` 
+              : filterColor === 'green'
+              ? `📈 Cellules en croissance (${filteredCells.length})`
+              : filterColor === 'yellow'
+              ? `➡️ Cellules statiques (${filteredCells.length})`
+              : filterColor === 'red'
+              ? `📉 Cellules en décroissance (${filteredCells.length})`
+              : `❓ Cellules non évaluées (${filteredCells.length})`
+            }
+          </h2>
+          {filterColor !== 'all' && (
+            <button
+              onClick={() => setFilterColor('all')}
+              className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+            >
+              <span>✕</span>
+              <span>Réinitialiser le filtre</span>
+            </button>
+          )}
+        </div>
 
         {filteredCells.length === 0 ? (
           <p className="text-gray-500 text-center py-8">Aucune cellule trouvée</p>
