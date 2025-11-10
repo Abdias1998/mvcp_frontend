@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext.tsx';
 import { useToast } from '../contexts/ToastContext.tsx';
 import { api } from '../services/api.real.ts';
 import { User, UserRole, Cell } from '../types.ts';
 import { SpinnerIcon, CheckCircleIcon, XCircleIcon, TrashIcon, UsersIcon, ChartBarIcon } from './icons.tsx';
 import ConfirmationModal from './ConfirmationModal.tsx';
+import UserReassignmentModal, { ReassignData } from './UserReassignmentModal.tsx';
 
 const AdminPage: React.FC = () => {
     const { user } = useAuth();
@@ -18,6 +19,10 @@ const AdminPage: React.FC = () => {
     const [actionType, setActionType] = useState<'approve' | 'delete-user' | 'delete-cell'>('approve');
     const [selectedItem, setSelectedItem] = useState<any>(null);
     const [isProcessing, setIsProcessing] = useState(false);
+    
+    // Réaffectation
+    const [isReassignModalOpen, setIsReassignModalOpen] = useState(false);
+    const [userToReassign, setUserToReassign] = useState<User | null>(null);
     
     // Filtres
     const [searchTerm, setSearchTerm] = useState('');
@@ -66,6 +71,24 @@ const AdminPage: React.FC = () => {
         setSelectedItem(cell);
         setActionType('delete-cell');
         setIsConfirmOpen(true);
+    };
+
+    const handleReassignRequest = (user: User) => {
+        setUserToReassign(user);
+        setIsReassignModalOpen(true);
+    };
+
+    const handleReassign = async (userId: string, reassignData: ReassignData) => {
+        try {
+            const result = await api.reassignUser(userId, reassignData);
+            showToast(result.message || 'Utilisateur réaffecté avec succès', 'success');
+            await fetchData();
+            setIsReassignModalOpen(false);
+            setUserToReassign(null);
+        } catch (error: any) {
+            showToast(`Erreur: ${error.message}`, 'error');
+            throw error;
+        }
     };
 
     const handleConfirmAction = async () => {
@@ -139,6 +162,40 @@ const AdminPage: React.FC = () => {
     };
 
     const stats = getStats();
+
+    // Listes dynamiques pour le modal de réaffectation
+    const availableRegions = useMemo(() => {
+        const regions = new Set<string>();
+        [...allUsers, ...pendingUsers].forEach(u => {
+            if (u.region) regions.add(u.region);
+        });
+        allCells.forEach(c => {
+            if (c.region) regions.add(c.region);
+        });
+        return Array.from(regions).sort();
+    }, [allUsers, pendingUsers, allCells]);
+
+    const availableGroups = useMemo(() => {
+        const groups = new Set<string>();
+        [...allUsers, ...pendingUsers].forEach(u => {
+            if (u.group) groups.add(u.group);
+        });
+        allCells.forEach(c => {
+            if (c.group) groups.add(c.group);
+        });
+        return Array.from(groups).sort();
+    }, [allUsers, pendingUsers, allCells]);
+
+    const availableDistricts = useMemo(() => {
+        const districts = new Set<string>();
+        [...allUsers, ...pendingUsers].forEach(u => {
+            if (u.district) districts.add(u.district);
+        });
+        allCells.forEach(c => {
+            if (c.district) districts.add(c.district);
+        });
+        return Array.from(districts).sort();
+    }, [allUsers, pendingUsers, allCells]);
 
     // Filtrer les utilisateurs
     const filteredUsers = allUsers.filter(u => {
@@ -369,13 +426,22 @@ const AdminPage: React.FC = () => {
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                                    <button
-                                                        onClick={() => handleDeleteUserRequest(u)}
-                                                        className="text-red-600 hover:text-red-900"
-                                                        title="Supprimer"
-                                                    >
-                                                        <TrashIcon className="h-5 w-5" />
-                                                    </button>
+                                                    <div className="flex items-center space-x-3">
+                                                        <button
+                                                            onClick={() => handleReassignRequest(u)}
+                                                            className="text-blue-600 hover:text-blue-900"
+                                                            title="Réaffecter"
+                                                        >
+                                                            🔄
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDeleteUserRequest(u)}
+                                                            className="text-red-600 hover:text-red-900"
+                                                            title="Supprimer"
+                                                        >
+                                                            <TrashIcon className="h-5 w-5" />
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))}
@@ -529,6 +595,21 @@ const AdminPage: React.FC = () => {
                 confirmText={actionType === 'approve' ? 'Approuver' : 'Supprimer'}
                 isConfirming={isProcessing}
             />
+
+            {/* Reassignment Modal */}
+            {userToReassign && (
+                <UserReassignmentModal
+                    user={userToReassign}
+                    onClose={() => {
+                        setIsReassignModalOpen(false);
+                        setUserToReassign(null);
+                    }}
+                    onReassign={handleReassign}
+                    regions={availableRegions}
+                    groups={availableGroups}
+                    districts={availableDistricts}
+                />
+            )}
         </div>
     );
 };

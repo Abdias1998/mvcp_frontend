@@ -932,4 +932,51 @@ export const api = {
   deleteUser: async (uid: string): Promise<void> => {
     return api.deletePastor(uid);
   },
+
+  // --- USER REASSIGNMENT ---
+  reassignUser: async (userId: string, reassignData: {
+    newRole?: UserRole;
+    newRegion?: string;
+    newGroup?: string;
+    newDistrict?: string;
+  }): Promise<any> => {
+    try {
+      const response = await httpClient.post<any>(
+        `${API_CONFIG.ENDPOINTS.USERS}/reassign`,
+        { userId, ...reassignData }
+      );
+      
+      return response;
+    } catch (error: any) {
+      console.error('Reassign user error:', error);
+      
+      let errorMessage = 'Erreur lors de la réaffectation de l\'utilisateur';
+      
+      if (error.statusText) {
+        errorMessage = error.statusText;
+        if (Array.isArray(errorMessage)) {
+          errorMessage = errorMessage.join(', ');
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      if (error.responseText) {
+        try {
+          const errorData = JSON.parse(error.responseText);
+          if (errorData.message) {
+            if (Array.isArray(errorData.message)) {
+              errorMessage = errorData.message.join(', ');
+            } else {
+              errorMessage = errorData.message;
+            }
+          }
+        } catch (e) {
+          // Ignorer si ce n'est pas du JSON valide
+        }
+      }
+      
+      throw new Error(errorMessage);
+    }
+  },
 };
