@@ -544,12 +544,16 @@ const LittoralDashboard: React.FC<{ user: User }> = ({ user }) => {
     }, [cells, selectedGroup, selectedDistrict]);
     
     const stats = useMemo(() => {
-        if (reportsToAnalyze.length === 0) return { totalReports: 0, avgAttendance: 0, totalMembers: 0, newMembers: 0, totalVisits: 0 };
+        if (reportsToAnalyze.length === 0) return { totalReports: 0, avgAttendance: 0, totalMembers: 0, newMembers: 0, totalVisits: 0, totalOfferings: 0, avgOffering: 0 };
         const totalReports = reportsToAnalyze.length;
         const totalPresentSum = reportsToAnalyze.reduce((acc, r) => acc + r.totalPresent, 0);
         const avgAttendance = totalReports > 0 ? Math.round(totalPresentSum / totalReports) : 0;
         const newMembers = reportsToAnalyze.reduce((acc, r) => acc + r.invitedPeople.length, 0);
         const totalVisits = reportsToAnalyze.reduce((acc, r) => acc + r.visitsMade.length, 0);
+        
+        // Statistiques des offrandes
+        const totalOfferings = reportsToAnalyze.reduce((acc, r) => acc + (r.offrande || 0), 0);
+        const avgOffering = totalReports > 0 ? Math.round(totalOfferings / totalReports) : 0;
         
         const latestReportsByCell = new Map<string, Report>();
         reportsToAnalyze.forEach(r => {
@@ -1380,6 +1384,10 @@ const RegionsDashboard: React.FC<{ user: User }> = ({ user }) => {
         const totalReports = reportsToAnalyze.length;
         const newMembers = reportsToAnalyze.reduce((acc, r) => acc + r.invitedPeople.length, 0);
         const totalVisits = reportsToAnalyze.reduce((acc, r) => acc + r.visitsMade.length, 0);
+        
+        // Statistiques des offrandes
+        const totalOfferings = reportsToAnalyze.reduce((acc, r) => acc + (r.offrande || 0), 0);
+        const avgOffering = totalReports > 0 ? Math.round(totalOfferings / totalReports) : 0;
         
         const latestReportsByCell = new Map<string, Report>();
         reportsToAnalyze.forEach(r => {

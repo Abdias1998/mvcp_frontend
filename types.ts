@@ -73,7 +73,11 @@ export interface Report {
   // New prayer requests field
   prayerRequests?: PrayerRequest[];
 
-  message: string;
+  // New fields replacing message
+  problemeRencontre?: string;
+  actionPrise?: string;
+  actionFutureRecommandee?: string;
+  offrande?: number;
   submittedAt: string; // ISO String
 }
 

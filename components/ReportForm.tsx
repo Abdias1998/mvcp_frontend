@@ -53,7 +53,10 @@ const initialDraft: ReportDraft = {
     evangelismOuting: '',
     poignantTestimony: '',
     prayerRequests: [],
-    message: '',
+    problemeRencontre: '',
+    actionPrise: '',
+    actionFutureRecommandee: '',
+    offrande: 0,
 };
 
 const STEPS = [
@@ -281,6 +284,7 @@ const ReportForm: React.FC = () => {
             bibleStudy: Number(formData.bibleStudy) || 0,
             miracleHour: Number(formData.miracleHour) || 0,
             sundayServiceAttendance: Number(formData.sundayServiceAttendance) || 0,
+            offrande: Number(formData.offrande) || 0,
             absentees: calculatedStats.absentees,
             totalPresent: calculatedStats.totalPresent,
         };
@@ -458,6 +462,16 @@ const ReportForm: React.FC = () => {
                  <h4 className="font-bold text-gray-800 mb-2">Témoignage Poignant</h4>
                  <p className="text-sm italic">"{formData.poignantTestimony}"</p>
             </div>}
+            
+            <div className="p-4 border rounded-lg bg-gray-50">
+                <h4 className="font-bold text-gray-800 mb-2">Informations financières et actions</h4>
+                <div className="grid grid-cols-1 gap-2 text-sm">
+                    <p><strong className="text-gray-600">Offrande:</strong> {formData.offrande ? `${formData.offrande} FCFA` : 'Non renseigné'}</p>
+                    {formData.problemeRencontre && <p><strong className="text-gray-600">Problème rencontré:</strong> {formData.problemeRencontre}</p>}
+                    {formData.actionPrise && <p><strong className="text-gray-600">Action prise:</strong> {formData.actionPrise}</p>}
+                    {formData.actionFutureRecommandee && <p><strong className="text-gray-600">Action future recommandée:</strong> {formData.actionFutureRecommandee}</p>}
+                </div>
+            </div>
         </div>
     );
 
@@ -656,8 +670,64 @@ const ReportForm: React.FC = () => {
                       </div>
                   ))}
               </div>
-               <label htmlFor="message" className={labelClass}>💬 Message au coordinateur (facultatif)</label>
-               <textarea name="message" id="message" value={formData.message} onChange={handleChange} rows={4} className={inputClass}></textarea>
+              <div className="pt-6 space-y-4">
+                  <h4 className="text-lg font-semibold text-gray-700">💰 Informations financières et actions</h4>
+                  
+                  <div>
+                      <label htmlFor="offrande" className={labelClass}>� Offrande (montant en FCFA)</label>
+                      <input 
+                          type="text" 
+                          name="offrande" 
+                          id="offrande" 
+                          value={formData.offrande} 
+                          onChange={handleChange} 
+                          className={inputClass}
+                          pattern="[0-9]*"
+                          inputMode="numeric"
+                          title="Veuillez entrer uniquement des chiffres"
+                          placeholder="Ex: 5000"
+                      />
+                  </div>
+                  
+                  <div>
+                      <label htmlFor="problemeRencontre" className={labelClass}>⚠️ Problème rencontré</label>
+                      <textarea 
+                          name="problemeRencontre" 
+                          id="problemeRencontre" 
+                          value={formData.problemeRencontre} 
+                          onChange={handleChange} 
+                          rows={3} 
+                          className={inputClass}
+                          placeholder="Décrivez les difficultés ou problèmes rencontrés pendant la réunion..."
+                      ></textarea>
+                  </div>
+                  
+                  <div>
+                      <label htmlFor="actionPrise" className={labelClass}>✅ Action prise</label>
+                      <textarea 
+                          name="actionPrise" 
+                          id="actionPrise" 
+                          value={formData.actionPrise} 
+                          onChange={handleChange} 
+                          rows={3} 
+                          className={inputClass}
+                          placeholder="Quelles actions avez-vous prises pour résoudre les problèmes ?..."
+                      ></textarea>
+                  </div>
+                  
+                  <div>
+                      <label htmlFor="actionFutureRecommandee" className={labelClass}>🎯 Action future recommandée</label>
+                      <textarea 
+                          name="actionFutureRecommandee" 
+                          id="actionFutureRecommandee" 
+                          value={formData.actionFutureRecommandee} 
+                          onChange={handleChange} 
+                          rows={3} 
+                          className={inputClass}
+                          placeholder="Quelles actions ou recommandations pour l'avenir ?..."
+                      ></textarea>
+                  </div>
+              </div>
             </section>
           )}
           
